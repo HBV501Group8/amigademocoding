@@ -1,15 +1,15 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { serveStatic } from "@hono/node-server/serve-static";
+import { serve } from '@hono/node-server';
+import { Hono } from 'hono';
+import { serveStatic } from '@hono/node-server/serve-static';
 import Main from './views/main.jsx';
 import Login from './views/login.jsx';
 import Registration from './views/Registration.jsx';
 import creditCard from './views/creditcard..jsx';
-import { setCookie, getCookie } from "hono/cookie";
-//import staticRoutes from "../Routes/static/servestataic.ts";
+import { setCookie, getCookie } from 'hono/cookie';
+import staticRoutes from '../Routes/static/servestataic.ts';
 import { db } from '../db.js';
 
-const app = new Hono()
+const app = new Hono();
 
 /**
  * 🔐 Login user
@@ -17,19 +17,20 @@ const app = new Hono()
  * @body {email: string, password: string}
  * @returns HTML redirect or login page
  */
-app.post("/api/login", async (c) => {
+app.post('/api/login', async (c) => {
   const body = await c.req.parseBody();
 
   const email = body.email;
   const password = body.password;
 
-  const lessons =   db.prepare("SELECT * FROM Users WHERE Email = ? AND Password = ?")
-   .all(email+"", password+"");
+  const lessons = db
+    .prepare('SELECT * FROM Users WHERE Email = ? AND Password = ?')
+    .all(email + '', password + '');
   if (lessons.length > 0) {
-    setCookie(c, "email", email + "");
-    return c.redirect("/");
+    setCookie(c, 'email', email + '');
+    return c.redirect('/');
   } else {
-    setCookie(c, "email", "");
+    setCookie(c, 'email', '');
     return c.html(Login());
   }
 });
@@ -40,7 +41,7 @@ app.post("/api/login", async (c) => {
  * @body {name: string, email: string, password: string, confirmPassword: string}
  * @returns HTML login page or JSON error
  */
-app.post("/api/register", async (c) => {
+app.post('/api/register', async (c) => {
   const body = await c.req.parseBody();
 
   const name = body.name;
@@ -50,15 +51,15 @@ app.post("/api/register", async (c) => {
 
   // 🔍 Validation
   if (!name || !email || !password || !confirm) {
-    return c.json({ error: "All fields required" }, 400);
+    return c.json({ error: 'All fields required' }, 400);
   }
 
   if (password !== confirm) {
-    return c.json({ error: "Passwords do not match" }, 400);
+    return c.json({ error: 'Passwords do not match' }, 400);
   }
 
-  const insertUser = db
-    .prepare("INSERT INTO Users (Name,Email,Password) VALUES(?, ?, ?)")
+     db
+    .prepare('INSERT INTO Users (Name,Email,Password) VALUES(?, ?, ?)')
     .run([name, email, password]);
 
   /**
@@ -79,25 +80,25 @@ app.post("/api/register", async (c) => {
  * 🧪 Debug route: set user cookie = 1
  * @route GET /set
  */
-app.get("/set", (c) => {
-  setCookie(c, "user", "1");
-  return c.redirect("/");
+app.get('/set', (c) => {
+  setCookie(c, 'user', '1');
+  return c.redirect('/');
 });
 
 /**
  * 🧪 Debug route: set user cookie = 2
  */
-app.get("/set2", (c) => {
-  setCookie(c, "user", "2");
-  return c.redirect("/");
+app.get('/set2', (c) => {
+  setCookie(c, 'user', '2');
+  return c.redirect('/');
 });
 
 /**
  * 🧪 Debug route: set user cookie = 3
  */
-app.get("/set3", (c) => {
-  setCookie(c, "user", "3");
-  return c.redirect("/");
+app.get('/set3', (c) => {
+  setCookie(c, 'user', '3');
+  return c.redirect('/');
 });
 
 /**
@@ -107,10 +108,10 @@ app.get("/set3", (c) => {
  * - email
  */
 app.get('/', (c) => {
-  const userEmail = getCookie(c, "email");
-  console.log("User email from cookie:", userEmail);
+  const userEmail = getCookie(c, 'email');
+  console.log('User email from cookie:', userEmail);
 
-  const user = getCookie(c, "user");
+  const user = getCookie(c, 'user');
   return c.html(Main(user, userEmail));
 });
 
@@ -118,7 +119,7 @@ app.get('/', (c) => {
  * 🔑 Login page
  */
 app.get('/login', (c) => {
-  setCookie(c, "email", "");
+  setCookie(c, 'email', '');
   return c.html(Login());
 });
 
@@ -136,15 +137,8 @@ app.get('/creditcard', (c) => {
   return c.html(creditCard());
 });
 
-//app.route("/", staticRoutes);
-app.get('*', serveStatic({ root: './src/static' }))
-app.get('*', serveStatic({ root: './Video' }))
-app.get('*', serveStatic({ root: './images' }))
-app.get('*', serveStatic({ root: './src/views/artifacts/part1' }))
-app.get('*', serveStatic({ root: './src/views/artifacts/part2' }))
-app.get('*', serveStatic({ root: './src/views/artifacts/part3' }))
-app.get('*', serveStatic({ root: './src/views/artifacts/part2/styles' }))
-app.get('*', serveStatic({ root: './ADF' }))
+/** Static routes */
+app.route('/', staticRoutes);
 
 /**
  * 📦 Download file: ASM-One.adf
@@ -167,7 +161,10 @@ app.get(
   serveStatic({
     path: './ADF/CourseSources.adf',
     onFound: (_path, c) => {
-      c.header('Content-Disposition', 'attachment; filename="CourseSources.adf"');
+      c.header(
+        'Content-Disposition',
+        'attachment; filename="CourseSources.adf"'
+      );
     },
   })
 );
@@ -180,7 +177,10 @@ app.get(
   serveStatic({
     path: './ADF/coursescroll.adf',
     onFound: (_path, c) => {
-      c.header('Content-Disposition', 'attachment; filename="coursescroll.adf"');
+      c.header(
+        'Content-Disposition',
+        'attachment; filename="coursescroll.adf"'
+      );
     },
   })
 );
@@ -201,9 +201,12 @@ app.get(
 /**
  * 🚀 Start server
  */
-serve({
-  fetch: app.fetch,
-  port: 3000
-}, (info) => {
-  console.log(`Server is running on http://localhost:${info.port}`)
-});
+serve(
+  {
+    fetch: app.fetch,
+    port: 3000,
+  },
+  (info) => {
+    console.log(`Server is running on http://localhost:${info.port}`);
+  }
+);

@@ -1,32 +1,150 @@
-   :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa;--glass:rgba(255,255,255,0.04)}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial;color:#e6eef6;background:linear-gradient(180deg,#071022 0%,#071a2a 100%);padding:36px}
-    .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:start}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:20px;box-shadow:0 6px 30px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.03)}
-    header{display:flex;align-items:center;gap:14px;margin-bottom:12px}
-    header h1{font-size:20px;margin:0}
-    header p{margin:0;color:var(--muted);font-size:13px}
+:root {
+	--bg: #0f1724;
+	--card: #0b1220;
+	--muted: #9aa4b2;
+	--accent: #60a5fa;
+	--glass: rgb(255 255 255 / 4%)
+}
 
-    /* left column (explanation) */
-    .explain h2{margin:8px 0 6px;font-size:16px}
-    .chips{display:flex;gap:10px;margin:10px 0}
-    .chip{flex:1;padding:10px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
-    .chip b{display:block;font-size:15px}
-    .muted{color:var(--muted);font-size:13px}
-    ul{padding-left:18px;margin-top:8px}
+* {
+	box-sizing: border-box
+}
 
-    /* right column (visual + controls) */
-    .visual{display:flex;flex-direction:column;gap:12px}
-    .imageWrap{background:#071220;border-radius:10px;padding:10px;display:flex;justify-content:center;align-items:center}
-    .imageWrap img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    .legend{display:flex;gap:8px;flex-wrap:wrap}
-    .legend button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer}
-    .legend button.active{border-color:var(--accent);color:#d9f1ff;box-shadow:0 6px 18px rgba(96,165,250,0.12)}
+body {
+	margin: 0;
+	font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, 'Helvetica Neue', Arial;
+	color: #e6eef6;
+	background: linear-gradient(180deg, #071022 0%, #071a2a 100%);
+	padding: 36px
+}
 
-    .note{font-size:12px;color:var(--muted);margin-top:8px}
+.wrap {
+	max-width: 1100px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: 1fr 420px;
+	gap: 28px;
+	align-items: start
+}
 
-    /* responsive */
-    @media (max-width:980px){.wrap{grid-template-columns:1fr;}
-      .imageWrap{order:-1}}
+.card {
+	background: linear-gradient(180deg, rgb(255 255 255 / 2%), rgb(255 255 255 / 1%));
+	border-radius: 14px;
+	padding: 20px;
+	box-shadow: 0 6px 30px rgb(2 6 23 / 70%);
+	border: 1px solid rgb(255 255 255 / 3%)
+}
 
-<
+header {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 12px
+}
+
+header h1 {
+	font-size: 20px;
+	margin: 0
+}
+
+header p {
+	margin: 0;
+	color: var(--muted);
+	font-size: 13px
+}
+
+/* left column (explanation) */
+.explain h2 {
+	margin: 8px 0 6px;
+	font-size: 16px
+}
+
+.chips {
+	display: flex;
+	gap: 10px;
+	margin: 10px 0
+}
+
+.chip {
+	flex: 1;
+	padding: 10px;
+	border-radius: 10px;
+	background: var(--glass);
+	border: 1px solid rgb(255 255 255 / 2%)
+}
+
+.chip b {
+	display: block;
+	font-size: 15px
+}
+
+.muted {
+	color: var(--muted);
+	font-size: 13px
+}
+
+ul {
+	padding-left: 18px;
+	margin-top: 8px
+}
+
+/* right column (visual + controls) */
+.visual {
+	display: flex;
+	flex-direction: column;
+	gap: 12px
+}
+
+.image-wrap {
+	background: #071220;
+	border-radius: 10px;
+	padding: 10px;
+	display: flex;
+	justify-content: center;
+	align-items: center
+}
+
+.image-wrap img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 8px;
+	box-shadow: 0 6px 18px rgb(2 6 23 / 60%)
+}
+
+.legend {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap
+}
+
+.legend button {
+	background: transparent;
+	border: 1px solid rgb(255 255 255 / 4%);
+	color: var(--muted);
+	padding: 8px 10px;
+	border-radius: 8px;
+	cursor: pointer
+}
+
+.legend button.active {
+	border-color: var(--accent);
+	color: #d9f1ff;
+	box-shadow: 0 6px 18px rgb(96 165 250 / 12%)
+}
+
+.note {
+	font-size: 12px;
+	color: var(--muted);
+	margin-top: 8px
+}
+
+/* responsive */
+@media (width <=980px) {
+	.wrap {
+		grid-template-columns: 1fr;
+	}
+
+	.image-wrap {
+		order: -1
+	}
+}

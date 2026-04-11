@@ -8,13 +8,24 @@
       max-width: 900px;
       margin: auto;
     }
+
     h1, h2, h3 {
       color: #4cc9f0;
     }
-    h1 { font-size: 2em; margin-top: 0; }
-    h2 { margin-top: 1.5em; font-size: 1.5em; }
-    h3 { margin-top: 1em; font-size: 1.2em; }
+
+    h1 { font-size: 2em;
+         margin-top: 0; 
+       }
+
+    h2 { margin-top: 1.5em; 
+         font-size: 1.5em; 
+       }
+
+    h3 { margin-top: 1em; 
+         font-size: 1.2em; 
+       }
     p { margin: 0.6em 0; }
+
     code {
       background: #1c2736;
       color: #80ffdb;
@@ -22,14 +33,16 @@
       border-radius: 4px;
     }
     ul { margin: 0.6em 0 0.6em 1.2em; }
+
     .card {
       background: #121720;
       border: 1px solid #1c2736;
       border-radius: 12px;
       padding: 16px;
       margin: 20px 0;
-      box-shadow: 0 6px 16px rgba(0,0,0,.35);
+      box-shadow: 0 6px 16px rgb(0 0 0 / 35%);
     }
+
     footer {
       margin-top: 30px;
       font-size: 0.9em;

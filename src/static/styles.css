@@ -13,7 +13,6 @@
 
 /* Body */
 body {
-  
   font-family: Arial, Helvetica, sans-serif;
   background: #f4f4f9;
   color: #333;
@@ -33,7 +32,7 @@ header {
 header .logo {
   max-height: 80px;
   display: block;
-  margin: 0 auto 10px auto;
+  margin: 0 auto 10px;
 }
 
 /* Main container */
@@ -57,10 +56,9 @@ main {
   width: 280px;
   height: 110px;
   flex-shrink: 0;
-
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
   padding: 40px 20px;
   text-align: center;
   font-size: 18px;
@@ -78,16 +76,18 @@ main {
   color: #e60012;
   transition: color 0.3s;
 }
+
 .hlink {
    text-align : center; 
 }
+
 .card span {
   font-weight: 600;
 }
 
 .card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 25px rgb(0 0 0 / 20%);
   background: linear-gradient(135deg, #f5af19, #e60012);
   color: white;
 }
@@ -97,7 +97,7 @@ main {
 }
 
 .text {
-  padding 40px;
+  padding: 40px;
   width: 100px;
   background-color:white;
 }
@@ -112,54 +112,61 @@ footer {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .card {
     flex: 1 1 calc(33.33% - 20px); /* 3 per row */
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .card {
     flex: 1 1 calc(50% - 20px); /* 2 per row */
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .card {
     flex: 1 1 100%; /* 1 per row */
   }
 }
+
 .register-card {
 background: #1e293b;
 border-radius: 12px;
-box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+box-shadow: 0 4px 12px rgb(0 0 0 / 40%);
 padding: 16px;
 margin-top: 20px;
 }
+
 table {
 width: 100%;
 border-collapse: collapse;
 margin-top: 10px;
 }
+
 th, td {
 border: 1px solid #334155;
 padding: 8px;
 text-align: left;
 font-size: 14px;
 }
+
 th {
 background: #0f172a;
 color: #38bdf8;
 }
+
 tr:nth-child(even) {
 background: #273449;
 }
+
 .note {
 margin-top: 12px;
 font-size: 13px;
 color: #94a3b8;
 }
+
 .texttut {
-  padding 10px;
+  padding: 10px;
   width : 40%;
 }

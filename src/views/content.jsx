@@ -1,19 +1,12 @@
-import { html } from 'hono/html'
-import { db } from "../../db";
-
-import React from 'react';
-
-
-
+import { html } from 'hono/html';
 
 /**
- * 
- * @param {*} lessons 
- * @returns 
+ *
+ * @param {*} lessons
+ * @returns
  */
 export default function content(lessons) {
-  
-return html`
+  return html`
     <Main>
      <div class="card-container">
 
@@ -26,10 +19,9 @@ return html`
       </span></a> 
       </div>
     `
-    
-   )}
+  )}
 ; 
     </div>
   </main>
-`
+`;
 }

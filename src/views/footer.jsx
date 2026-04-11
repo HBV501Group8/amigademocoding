@@ -1,15 +1,14 @@
-import { html } from 'hono/html'
+import { html } from 'hono/html';
 
 /**
- * 
- * @returns 
+ *
+ * @returns
  */
 
 export default function footer() {
-  
-    return html`
+  return html`
   <footer>
     <p>&copy; 2025 Amiga Enthusiasts. All Rights Reserved.</p>
   </footer>  </header> 
-  `
+  `;
 }
