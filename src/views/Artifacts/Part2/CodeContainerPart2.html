@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 26px;
+      color: #38bdf8;
+      margin-bottom: 16px;
+    }
+    .example-container {
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .example-header {
+      background: #0f172a;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .example-header span {
+      font-weight: bold;
+      color: #fbbf24;
+    }
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow-x: auto;
+      background: #1e293b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    code {
+      font-family: "Fira Code", monospace;
+      color: #e2e8f0;
+    }
+    .copy-btn {
+      background: #334155;
+      border: none;
+      color: #f1f5f9;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #475569;
+    }
+
+.textout {
+    padding:20px;
+    margin: 20px;
+    max-width: 40%;
+}    
+  </style>
+</head>
+<body>
+
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+      🔹 What is the Blitter?
+
+The Blitter (short for Block Image Transfer) is a dedicated piece of hardware inside the Amiga’s Agnus chip.
+Its main job is to move and manipulate blocks of memory (usually graphics data like pixels) extremely fast, without needing the CPU to do all the work.
+
+Think of it as a hardware-accelerated copy-and-draw engine that operates in parallel with the Motorola 68000 CPU.
+</p>
+</div>
+    <div class="textout">
+      <p>
+        Here we use the blitter to put the image to screen 
+        <pre>
+            SECTION TUT,CODE_C
+
+VHPOSR = $dff006
+COLOR00 = $dff180
+INTENA = $dff09a
+INTENAR = $dff01c
+CIA_PORT_A = $bfe001
+LeftMouse = 6
+LINE_WAIT = $ff
+BITPLANES_USED = 5
+SCREEN_SIZE = (40*256) * BITPLANES_USED
+
+bpl1pth		equ	$0e0
+bpl1ptl		equ	$0e2
+bpl2pth		equ	$0e4
+bpl2ptl		equ	$0e6
+Bpl3pth		equ	$0e8
+bpl3ptl		equ	$0ea
+bpl4pth		equ	$0ec
+bpl4ptl		equ	$0eE
+bpl5pth		equ	$0f0
+Bpl5ptl		equ	$0f2
+
+COP1LCH = $dff080
+
+BPLCON0 = $0100
+BPLCON1 = $0102
+BPLCON2 = $0104
+bpl1mod = $0108
+bpl2mod = $010a
+
+;color00		equ	$180
+color01		equ	$182
+color02		equ	$184
+color03		equ	$186
+color04		equ	$188
+color05		equ	$18a
+color06		equ	$18c
+color07		equ	$18e
+
+
+BLTCON0=$DFF040		
+BLTCON1=$DFF042
+BLTAFWM=$DFF044
+BLTALWM=$DFF046
+BLTCPTH=$DFF048
+BLTCPTL=$DFF04A
+BLTBPTH=$DFF04C
+BLTBPTL=$DFF04E
+BLTAPTH=$DFF050
+BLTAPTL=$DFF052
+BLTDPTH=$DFF054
+BLTDPTL=$DFF056
+BLTSIZE=$DFF058
+BLTCMOD=$DFF060
+BLTBMOD=$DFF062
+BLTAMOD=$DFF064
+BLTDMOD=$DFF066
+BLTCDAT=$DFF070
+BLTBDAT=$DFF072
+BLTADAT=$DFF074
+DMACONR=$DFF002
+
+INTERLEAVED=1
+
+           
+            LEA BPLPointers,a0
+            lea screen,a1
+            move.l  a1,d0
+	    clr.l d1	
+	    move.w  #3-1,d1
+NextPlane:    
+            move.w	d0,6(a0)	And set low address word ;
+            swap.w	d0		Low = High : High = Low
+            move.w	d0,2(a0)	And set high adress word
+	    swap 	d0
+
+	    IF INTERLEAVED=0
+	    add.L       #40*256,d0
+
+	    ELSE
+	    add.L       #40,d0
+
+	    ENDC			
+
+	    add.l 	#8,a0
+	    dbra	d1,NextPlane	
+
+ ; Save system copper
+            move.l 4.w,a6
+            clr.l d0
+            move.l #gfxname,a1
+            jsr -408(a6)
+            move.l d0,a1
+            move.l 38(a1),SysCopper
+            jsr -414(a6)
+
+            ;Save system interrupts
+            move.w INTENAR,SYSintena
+
+
+	    move #$7fff,$dff09a	
+
+            move.l #COPPERLIST,$dff080; COP1LCH
+
+	    MOVE.W #$81C0,$DFF096
+
+          ; Main loop
+Mainloop:
+            bsr copyimage		
+	
+            btst #LeftMouse,CIA_PORT_A
+            bne MainLoop
+RestoreSystem:
+	     or #$c000,SYSintena	
+             move SYSIntena,INTENA
+             move.l SysCopper,COP1LCH
+             move #0,d0
+             rts
+
+copyimage
+	lea	image2,a0           ;Get the address of picture in a9
+	move.l	#screen,a1      ;Get the adddress of the screen in a1
+WBlit	btst	#14,$dff002		Blitter done
+	bne.s	WBlit			If not wait
+
+	move.l	a0,bltapth      ; source is a0 or the picture
+	move.l	a1,bltdpth      ; Destination is the screen
+	move.l	#-1,bltafwm     ; Usual -1 for the mask    
+	move.w	#0,bltamod      ; No modulo for source
+	move.w	#0,bltdmod      ; No modulo for destination
+	move.l	#$09f00000,bltcon0  ; simple copy op
+	move.w	#(64*42*3)+20,bltsize   ; this means blit the whole Logo
+                                    ; Because we are using INTERLEAVED bitmaps
+                                    ; by using this formula 42 is height of Logo
+                                    ; 3 is the number of Biplanes and 20 is 40 bytes
+                                    ; represnted in word. So we are using the whole screen
+                                    ; horizontally
+	rts
+
+
+
+CopperList:
+	DC.W	$008E,$2A81,$0090,$2AD1
+	DC.W	$0092,$0038,$0094,$00D0
+	
+	DC.W    bplcon0,$3200  ; set 3 bitplanes
+	DC.W	bplcon1,$0000
+	DC.W 	bplcon2,$000
+
+        IF INTERLEAVED=0
+	 DC.W	bpl1mod,0	;If sequential no biplane modulo
+ 	 DC.W 	bpl2mod,0	;
+	ELSE
+	 DC.W	bpl1mod,80	; We are using INTERLEAVED bitmaps so we must set modulo
+ 	 DC.W 	bpl2mod,80	; 
+	ENDC
+	
+BPLPointers:
+        dc.w	bpl1pth,0
+        dc.w	bpl1ptl,0
+        dc.w	bpl2pth,0
+        dc.w	bpl2ptl,0
+        dc.w	bpl3pth,0
+        dc.w	bpl3ptl,0
+        dc.w	bpl4pth,0
+        dc.w	bpl4ptl,0
+        dc.w	bpl5pth,0
+        dc.w	bpl5ptl,0
+
+	;LOGO COLORS
+	dc.w	$0180,$0000
+	dc.w	color01,$0EFF
+	dc.w	color02,$0BCD
+	dc.w	color03,$0ABC
+	dc.w	color04,$09AB
+	dc.w	color05,$0567
+	dc.w	color06,$0456
+	dc.w	color07,$0012
+
+	DC.W $FFDF,$FFFE
+        dc.w  $ffff,$fffe
+
+Screen:		blk.b 10240*3,0
+
+gfxname:
+               dc.b "graphics.library",0
+	even
+SysCopper:
+              dc.l 0
+SysIntena:
+              dc.w 0
+
+IMAGE2:		INCBIN	work:assembler/graphics/logopr320x42x3inter.raw
+
+
+
+        </pre>
+     </p>
+    </div>
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

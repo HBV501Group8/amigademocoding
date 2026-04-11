@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="./styles/containerCode.css">  </style>
+</head>
+<body>
+  <h1>Example Line drawing with Blitter.</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+       1. What is a Blitter?
+
+    A blitter is a specialized hardware or software routine that quickly moves or draws pixel data (like lines, sprites, or bitmaps) from one memory area to another. In old graphics systems, it was used to accelerate drawing without CPU-intensive calculations.
+    Instead of plotting each pixel with slow CPU operations, the blitter could copy patterns, lines, or rectangles in bulk.
+    This is why “blitter line drawing” is essentially about efficiently plotting pixels along a line.
+      </p>
+      <p>
+2. How Blitter Line Drawing Works Conceptually
+</p>
+<p>
+Blitter line drawing usually follows a rasterization algorithm:
+
+Step 1: Define the line
+
+You have two points:
+
+(x0, y0) → start point
+(x1, y1) → end point
+
+Step 2: Calculate the differences
+dx = x1 - x0
+dy = y1 - y0
+
+</p>
+
+<p>
+This gives the slope and direction.
+Step 3: Use a line algorithm
+Blitter hardware/software usually uses a Bresenham’s line algorithm because it:
+</p>
+<p>
+Only uses integer math (fast)
+Determines which pixels are “closest” to the ideal line
+Works for all slopes (steep or shallow)
+Bresenham in concept:
+Start at (x0, y0)
+Move one pixel at a time along the major axis (x or y)
+Decide whether to move in the other axis based on an error term
+Draw the pixel
+
+Repeat until (x1, y1) is reached
+ </p>
+ <p>
+    Here is a simple line drawing routine.
+    called with d0=x,d1=y,s2=x2,d3=y2
+    d4 is screenwidth in bytes 
+    a0 is pointer to screen(Wscr)
+ </p>       
+ <pre>
+    *****************************
+* Blitter line draw equates *
+*****************************
+LineMode	equ	$1
+SignFlag	equ	$40
+Octant8		equ	6
+Octant7		equ	1
+Octant6		equ	3
+Octant5		equ	7
+Octant4		equ	5
+Octant3		equ	2
+Octant2		equ	0
+Octant1		equ	4
+
+*****************************
+* This is line draw routine *
+* d0 = x0  :  d1 = y0	    *
+* d2 = x1  :  d3 = y1	    *
+* d4 = screenwidth 	    *
+* a0 = pointer to bitmap    *
+*****************************
+DrawLine
+	bsr	WBlit
+	move.w	d4,bltcmod(a6)		C mod = bitplane width
+	move.w	d4,bltdmod(a6)		D mod = bitplane width
+
+	mulu.w	d1,d4
+	move.w	d0,d5		d5=x1
+	lsr.w	#3,d5		d5=x1/8
+	add.w	d5,d4		add d5 to d4
+	add.l	d4,a0		add bitplane-adress to a0
+
+	lea.l	Octant_table,a4
+* Calculate octants & delta
+
+	moveq.l	#0,d5			Clear work register
+	sub.w	d1,d3			y2-y1  DeltaY from d3
+	roxl.b	#1,d5			Scroll neg-sign in deltY
+	tst.w	d3			Restore n-flag ?
+	bge.s	y2gy1			Jump if deltaY is positive
+	neg.w	d3			Else invert deltaY
+y2gy1	sub.w	d0,d2			x2-x1  DeltaX
+	roxl.b	#1,d5			Scroll neg-sign in deltx
+	tst.w	d2			Restore n-flag ?
+	bge.s	x2gx1			Jump if deltax is positive
+	neg.w	d2			Else invert deltay
+x2gx1	move.w	d3,d1			D1 = deltaY
+	sub.w	d2,d1			d1 = deltaY-deltaX
+	bge.s	dygdx			Jump if deltay>deltax
+	exg.l	d2,d3			Smaller delta goto d2
+dygdx	roxl.b	#1,d5			d5=number of actual octant
+	move.b	(a4,d5),d5		d5=octant-code
+	add.w	d2,d2			d2=smallest data*2
+	move.w	d2,bltbmod(a6)		B mod = 2 * smaller delta
+
+	and.w	#$000f,d0		Get 4 bits of x1
+	ror.w	#4,d0			Set shift-value
+	or.w	#$0bfa,d0	$0bfa = Or with USEA+USEC+USED, D=A+X
+*				$0b5a =	Eor with USEA+USEC+USED,D=Ac+aC
+	move.l	d3,d1			Set up size word
+	lsl.w	#6,d3			Shift six left (blitter height)
+	add.w	#$42,d3			And add one to height, 2 to width
+
+	sub.w	d1,d2			2* Smaller delta - Larger delta
+	bge.s	signnl			Jump if 2*SmallerDelta > GreaterDelta
+	or.b	#SignFlag,d5		Set sign bit in bltcon1
+signnl	move.w	d2,bltaptl(a6)		2* Smaller delta - Larger delta
+	sub.w	d1,d2			2* Smaller delta - 2* Larger delta
+	move.w	d2,bltamod(a6)		To bltamod
+
+	move.w	d0,bltcon0(a6)		Set shift and minterms
+	move.w	d5,bltcon1(a6)		Set ocant number
+	move.w	#$8000,bltadat(a6)	A data = 0x8000
+	moveq.l	#-1,d5			Set mask all to ones
+	move.l	d5,bltafwm(a6)		We can hit both masks at once
+	move.l	a0,bltcpth(a6)		Pointer to first pixel to set
+	move.l	a0,bltdpth(a6)		Pointer to first pixel to set
+	move.w	d3,bltsize(a6)		Start line-draw
+	rts				And return, blit still in progress
+
+octant_table
+	dc.b	Octant2*4+LineMode	y1<y2, x1<x2, dx<dy
+	dc.b	Octant1*4+LineMode	y1<y2, x1<x2, dx>dy
+	dc.b	Octant3*4+LineMode	y1<y2, x1>x2, dx<dy
+	dc.b	Octant4*4+LineMode	y1<y2, x1>x2, dx>dy
+	dc.b	Octant7*4+LineMode	y1>y2, x1<x2, dx<dy
+	dc.b	Octant8*4+LineMode	y1>y2, x1<x2, dx>dy
+	dc.b	Octant6*4+LineMode	y1>y2, x1>x2, dx<dy
+	dc.b	Octant5*4+LineMode	y1>y2, x1>x2, dx>dy
+
+	even
+
+ </pre>
+
+       
+
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

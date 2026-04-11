@@ -1,0 +1,67 @@
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 26px;
+      color: #38bdf8;
+      margin-bottom: 16px;
+    }
+    .example-container {
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .example-header {
+      background: #0f172a;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .example-header span {
+      font-weight: bold;
+      color: #fbbf24;
+    }
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow-x: auto;
+      background: #1e293b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    code {
+      font-family: "Fira Code", monospace;
+      color: #e2e8f0;
+    }
+    .copy-btn {
+      background: #334155;
+      border: none;
+      color: #f1f5f9;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #475569;
+    }
+
+.textout {
+    padding:20px;
+    margin: 20px;
+    max-width: 40%;
+}    
+  

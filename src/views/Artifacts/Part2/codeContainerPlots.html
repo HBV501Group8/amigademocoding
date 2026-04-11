@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 26px;
+      color: #38bdf8;
+      margin-bottom: 16px;
+    }
+    .example-container {
+      background: #1e293b;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .example-header {
+      background: #0f172a;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .example-header span {
+      font-weight: bold;
+      color: #fbbf24;
+    }
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow-x: auto;
+      background: #1e293b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    code {
+      font-family: "Fira Code", monospace;
+      color: #e2e8f0;
+    }
+    .copy-btn {
+      background: #334155;
+      border: none;
+      color: #f1f5f9;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #475569;
+    }
+
+.textout {
+    padding:20px;
+    margin: 20px;
+    max-width: 40%;
+}    
+  </style>
+</head>
+<body>
+	  <h1>Plotting in 32 colors with sin and cos equation and colorcycling</h1>
+
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+            Simple sin cos math plot and using color cycling to 
+            simulate basic plasma sometimes calles pseudo plasma
+      </p>
+         <p>
+            I takes about 3 sec to render all 5 biplanes(32 colors)
+            and a lookup table that translates to each color register used
+            as a short sinus table
+         </p>
+         <pre>
+*************************************
+* Here are all the hardware equates *
+*************************************
+	include work:ASSEMBLER/HardwareEquates.S
+
+**********************************
+* Exec base and structure offset *
+**********************************
+ExecBase	equ	$0004
+
+***************************
+* These are the cia-names *
+***************************
+CIAASDR		equ	$bfec01
+CIAAICR		equ	$bfed01
+CIAACRA		equ	$bfee01
+
+**************************
+* Screen display equates *
+**************************
+ScreenHeight	equ	256
+ScreenWidth	equ	320/8
+ScreenDepth	equ	5
+ScreenMemory	equ	ScreenHeight*ScreenWidth*ScreenDepth
+
+*******************************************
+* Here is where the actual program begins *
+*******************************************
+	movea.l	ExecBase,a5		Get execbase for sys copper get
+	lea.l	Custom,a6		And hardware base also
+	bsr	SetBplPointers		Set bitplane pointers in copper
+	bsr	KillInterrupts		Geuss what
+	bsr	SetDMA			And geuss again
+	bsr	SetCIA			Set the CIA chips
+	bsr	InitScreen		Set mine screen
+	bsr	DrawPic
+lmb 	btst	#6,$bfe001		Test left mouse button
+	bne	lmb			Looped until pressed
+	bsr	ResScreen		Set system screen
+	bsr	ResCIA			Restore the CIA chips
+	bsr	ResDMA			Restore system dma
+	bsr	ResInterrupts		Restore system interupts
+	moveq.l	#0,d0			Signal dos : no error
+	rts				Quit program
+
+***************
+* DrawPicture *
+***************
+DrawPic	
+	lea.l	Sin(pc),a1
+	lea.l	cos(pc),a2
+	moveq.l	#0,d7
+	subq.w	#1,d7
+	moveq.l	#0,d5
+ResX	addq.w	#1,d7
+	moveq.l	#0,d6
+ContDraw
+*   Find equation
+	sub.w	d6,d5
+	neg.w	d5
+	sub.w	d7,d5
+	muls.w	d7,d5
+	muls.w	d6,d5
+	add.w	d7,d5
+	lsr.l	#8,d5
+	lsr.l	#3,d5
+	move.w	d5,d3
+	asr.w	#7,d5
+
+
+	sub.w	d4,d3
+	asr.w	#5,d5
+
+	bsr.s	WhatColor		d3 = color
+
+	lea.l	Screen,a0
+	move.w	d6,d0
+	move.w	d7,d1
+	move.w	#ScreenWidth*screendepth,d2
+*	MOVE.W	#1,D3
+;	color=d3
+
+**************************
+* Subprogram : Set point *
+* The parameters are :   *
+* a0 ^ Screen		 *
+* d0 = x   :  d1 = y     *
+* d2 = ScreenWidth/8     *
+* d3 = Color code	 *
+* d0-d3/a0 are trashed   *
+**************************
+Point	mulu	d2,d1			Get y-axe add
+	adda.l	d1,a0			Add to screen
+	move.w	d0,d1			Save x
+	lsr.w	#3,d0			Get byte value
+	adda.w	d0,a0			Add to screen
+	not.w	d1			And reverse for bset
+	moveq.l	#ScreenDepth-1,d0	Set which planes
+SetP	lsr.w	#1,d3			Test color code
+	bcc.s	SetNoP			If no bitmap set no point
+	bset	d1,(a0)			And set point
+SetNoP	add.l	#ScreenWidth,a0		Next bitmap
+	dbra	d0,SetP			Do until all bitmaps are fin.
+
+
+	addq.w	#1,d6
+	cmp.w	#ScreenWidth*8,d6
+	bge	ResX
+	cmp.w	#ScreenHeight-1,d7
+	bge	ExitDraw
+	bra	ContDraw
+ExitDraw
+	rts
+
+WhatColor
+	lea.l	ColorTable(pc),a5
+	andi.w	#$3f,d3			4 planes (change if needed)
+	add.w	d3,d3
+	move.w	(a5,d3.w),d3
+	rts
+
+ColorTable
+	dc.w	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+	dc.w	15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+	dc.w	16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+	dc.w	31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16
+
+
+SINADD	DC.W	0
+SINADD2	DC.W	0
+
+***************************************
+* This is my vertical blank interrupt *
+***************************************
+MyVBLI	movem.l	d0-d7/a0-a6,-(sp)
+	addq.w	#1,Counter
+	move.w	Counter(pc),d0
+	andi.w	#$0002,d0
+	bne.s	NCS
+	*bra.s	NCS
+ * Shift colors in coloregs   
+	lea.l	ColRegs,a0
+	addq.l	#6,a0
+	move.w	#29-1,d2
+	move.w	(a0),d0
+ColLoop	addq.l	#4,a0
+	move.w	(a0),d1
+	move.w	d0,(a0)
+	move.w	d1,d0
+	dbra	d2,ColLoop
+	lea.l	ColRegs,a0
+	addq.w	#6,a0
+	move.w	d0,(a0)
+NCS	movem.l	(sp)+,d0-d7/a0-a6
+	move.w	#$0020,intreq+custom	Clear vbli request
+	rte
+
+
+Counter	dc.w	$0000
+
+**************************
+* This is the keyboard   *
+* (and serial) interrupt *
+**************************
+KeyBInt	movem.l	d0/a0/a6,-(sp)
+	lea.l	Custom,a6		Get hardware custom base
+	move.b	CIAAICR,d0		d0 = interrupt control register
+	btst	#3,d0			A serial port interrrupt ?
+	beq.s	KeyBIntexit		If not, exit
+	moveq.l	#0,d0			Clear d0
+	move.b	CIAASDR,d0		Get serial data
+	ori.b	#%01000000,CIAACRA	Serial port is now output
+	move.b	#%11111111,CIAASDR	Send handshake
+	andi.b	#%10111111,CIAACRA	Serial port is now input
+	btst	#0,d0			Is it an up-code
+	bne.s	KeyBIntexit		Yes exit
+	ror.b	#1,d0			Scroll up/down flag back
+	not.b	d0			Complemet key-code
+	cmp.b	#$40,d0
+	bgt.s	KeyBIntexit
+	lea.l	KBDTable,a0
+	move.b	(a0,d0.w),d0
+KeyBIntexit
+	move.w	#$0008,Intreq(a6)
+	movem.l	(a7)+,d0/a0/a6
+	rte
+
+KBDTable
+	dc.b	32,"1234567890-=\",32,"0qwertyuiop[]",32
+	dc.b	"123asdfghjkl;'",32,32,"456",32,"zxcvbnm,./",32
+	dc.b	".789",32,32,32,32,32,32,32,32,32,32
+
+
+****************************************************
+* And this sets the bitplanepointers in copperlist *
+****************************************************
+SetBplPointers
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	lea.l	Screen,a1	Get screen adress
+	move.l	a1,d0		And move to data register so i can swap
+	move.w	#ScreenDepth-1,d1	Get screen depth (-1 for dbra)
+ScLoop	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap.w	d0		High = Low : Low = High
+	add.w	#ScreenWidth,d0	Add screenwidth to screen for layed bitmaps
+	adda.w	#8,a0		Add to next bitplane in copper
+	dbra	d1,ScLoop	Do until all bitplanes are finished
+	rts			Return from subroutine
+
+******************************************************
+* These subroutines take over the system copper list *
+* and set mine copperlist and then restore it again. *
+******************************************************
+InitScreen
+	move.l	156(a5),a1		Get gfx-library base
+	move.l	38(a1),SysCopper	Get system copper list
+	move.l	#CopperList,cop1lch(a6)	And set mine copper instead
+	rts
+
+ResScreen
+	move.l	SysCopper,cop1lch(a6)	Restore system copperlist
+	rts
+
+SysCopper
+	dc.l	0
+
+*****************************************************
+* These little subroutines take over the interrupts *
+* and then restore them again to the system. Yeahh. *
+*****************************************************
+KillInterrupts
+	move.w	intenar(a6),SysIntenar		Get system inenta
+	move.w	intreqr(a6),SysIntreqr		Get system intreq
+	move.w	#$7fff,intreq(a6)		Clear system enable
+	move.w	#$7fff,intena(a6)		Clear system request
+	move.l	$6c,OldVBLI			Save system vbli
+	move.l	#MyVBLI,$6c			And set mine instead
+	move.w	#$8000+$4000+$20,intena(a6)	Allow vbli
+	rts
+
+ResInterrupts
+	move.l	OldVBLI(pc),$6c			Restore the system vbli
+	or.w	#$8000,SysIntenar		Set intena set bit
+	or.w	#$8000,SysIntreqr		Set intreq set bit
+	move.w	SysIntreqr(pc),intreq(a6)	Restore it
+	move.w	SysIntenar(pc),intena(a6)	Restore it
+	rts
+
+OldVBLI
+	dc.l	0
+SysIntenar
+	dc.w	0
+SysIntreqr
+	dc.w	0
+
+***********************************************************
+* This kills the system DMA and then sets my dma and when *
+* all that it is done it is capable of restoring it again *
+***********************************************************
+SetDMA	move.w	DMAconr(a6),d0		Fetch system dma status
+	move.w	d0,SystemDMA		Save system dma
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	#$8380,DMAcon(a6)	Set COPEN+BPLEN+DMAEN
+	rts
+
+ResDMA	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	SystemDMA(pc),d0	Get old system dma
+	or.w	#$8000,d0		And set
+	move.w	d0,DMAcon(a6)		And now start it
+	rts
+
+SystemDMA
+	dc.w	0
+
+**********************************************
+* These routines take over the cia-ports and *
+* set up a keyboard handler.  Also restore.  *
+**********************************************
+SetCIA	move.l	$68,SysLevel2		Save system level 2 interrupt
+	move.l	#KeyBInt,$68		Set my keyboard interrupt
+	move.w	#$8008,Intena(a6)	Allow keyboard interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001000,CIAAICR	Start sp-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+ResCIA	move.l	SysLevel2,$68		Restore system level 2 interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001111,CIAAICR	Start sp/alrm/tb/ta-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+SysLevel2
+	dc.l	0
+
+Sin	incbin	work:ASSEMBLER/Sin.r
+cos	incbin	work:ASSEMBLER/cos.r
+
+*******************************
+* And the megalong copperlist *
+*******************************
+	Section	Copper,DATA_C
+
+CopperList
+	dc.w	$1011,$fffe
+	DC.W	bplcon0,$5200
+	DC.W	bplcon1,$0
+	DC.W	bplcon2,$0
+	DC.W	bpl1mod,screendepth-1 * ScreenWidth
+	DC.W	bpl2mod,screendepth-1 * ScreenWidth
+	DC.W	diwstrt,$2981
+	DC.W	diwstop,$29c1
+	DC.W	ddfstrt,$0038
+	DC.W	ddfstop,$00D0
+BPLPointers
+	DC.W	bpl1pth,$0000
+	DC.W	bpl1ptl,$0000
+	DC.W	bpl2pth,$0000
+	DC.W	bpl2ptl,$0000
+	DC.W	bpl3pth,$0000
+	DC.W	bpl3ptl,$0000
+	DC.W	bpl4pth,$0000
+	DC.W	bpl4ptl,$0000
+	DC.W	bpl5pth,$0000
+	DC.W	bpl5ptl,$0000
+COLREGS
+	DC.W	COLOR00,$0000
+	DC.W	COLOR01,$0001
+	DC.W	COLOR02,$0002
+	DC.W	COLOR03,$0003
+	DC.W	COLOR04,$0004
+	DC.W	COLOR05,$0005
+	DC.W	COLOR06,$0006
+	DC.W	COLOR07,$0007
+	DC.W	COLOR08,$0008
+	DC.W	COLOR09,$0009
+	DC.W	COLOR10,$000A
+	DC.W	COLOR11,$000B
+	DC.W	COLOR12,$000C
+	DC.W	COLOR13,$000D
+	DC.W	COLOR14,$000E
+	DC.W	COLOR15,$000F
+	DC.W	COLOR16,$0010
+	DC.W	COLOR17,$0020
+	DC.W	COLOR18,$0030
+	DC.W	COLOR19,$0040
+	DC.W	COLOR20,$0050
+	DC.W	COLOR21,$0060
+	DC.W	COLOR22,$0070
+	DC.W	COLOR23,$0080
+	DC.W	COLOR24,$0090
+	DC.W	COLOR25,$00A0
+	DC.W	COLOR26,$00B0
+	DC.W	COLOR27,$00C0
+	DC.W	COLOR28,$00D0
+	DC.W	COLOR29,$00E0
+	DC.W	COLOR30,$00E0
+	DC.W	COLOR31,$00F0
+	DC.W	$FFFF,$FFFE
+
+******************************
+* And then the screen memory *
+******************************
+	Section	Screen,BSS_C
+
+Screen	ds.b	ScreenMemory
+
+
+         
+         </pre>
+     </p>
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

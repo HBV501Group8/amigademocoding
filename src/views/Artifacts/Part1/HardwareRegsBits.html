@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Amiga OCS/ECS — Full Registers (Agnus · Denise · Paula)</title>
+<link rel="stylesheet" href="./hardwareRegsBits.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#073b59,#0d688f);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff">Amiga</div>
+      <div>
+        <h1>Amiga OCS / ECS — Register Map</h1>
+        <p class="small">Modular reference: Agnus (DMA/Copper/Blitter), Denise (Video), Paula (Audio/I/O). Use search to filter by name or address.</p>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search"><input id="q" type="search" placeholder="Search registers by name, address, or description (e.g. DMACON, $DFF096)" oninput="filter()"/></div>
+      <button class="chip-btn active" data-chip="all" onclick="selectChip('all', this)">All</button>
+      <button class="chip-btn" data-chip="agnus" onclick="selectChip('agnus', this)">Agnus</button>
+      <button class="chip-btn" data-chip="denise" onclick="selectChip('denise', this)">Denise</button>
+      <button class="chip-btn" data-chip="paula" onclick="selectChip('paula', this)">Paula</button>
+      <button class="download" onclick="downloadAll()">Download Selected (HTML)</button>
+    </div>
+
+    <div class="content">
+      <!-- Agnus -->
+      <div class="panel" data-chip-panel="agnus">
+        <h3>Agnus — DMA, Blitter, Copper, Memory Control</h3>
+        <p class="small">Registers used for DMA control, blitter operations, copper pointer, and memory arbitration.</p>
+        <table>
+          <thead><tr><th style="width:120px">Address</th><th>Name</th><th style="width:100px">Bits</th><th>Description</th></tr></thead>
+          <tbody id="agnus-table">
+            <tr><td class="addr">$DFF000</td><td><b>INTENA</b></td><td class="bits">15–0</td><td class="desc">Interrupt enable (OCS/ECS). Master SET/CLR and per-source enables.</td></tr>
+            <tr><td class="addr">$DFF004</td><td><b>INTREQ</b></td><td class="bits">15–0</td><td class="desc">Interrupt request / control (write 1 to clear in some models).</td></tr>
+            <tr><td class="addr">$DFF006</td><td><b>DSKSYNC</b></td><td class="bits">15–0</td><td class="desc">Disk sync — used for disk timing.</td></tr>
+            <tr><td class="addr">$DFF008</td><td><b>JOY0DAT</b></td><td class="bits">15–0</td><td class="desc">Joystick 0 / direction/buttons.</td></tr>
+            <tr><td class="addr">$DFF00A</td><td><b>JOY1DAT</b></td><td class="bits">15–0</td><td class="desc">Joystick 1 / direction/buttons.</td></tr>
+            <tr><td class="addr">$DFF00C</td><td><b>CLXCON</b></td><td class="bits">15–0</td><td class="desc">Collision control (ECS/AGA variations exist).</td></tr>
+            <tr><td class="addr">$DFF012</td><td><b>POT0DAT</b></td><td class="bits">15–0</td><td class="desc">Potentiometer / paddle data 0.</td></tr>
+            <tr><td class="addr">$DFF014</td><td><b>POT1DAT</b></td><td class="bits">15–0</td><td class="desc">Potentiometer / paddle data 1.</td></tr>
+            <tr><td class="addr">$DFF016</td><td><b>ADKCON</b></td><td class="bits">15–0</td><td class="desc">Audio/DSP control (DMA pace & stereo options on some models).</td></tr>
+            <tr><td class="addr">$DFF01A</td><td><b>SDMCTL</b></td><td class="bits">15–0</td><td class="desc">Serial DMA control and parallel I/O flags.</td></tr>
+            <tr><td class="addr">$DFF020</td><td><b>CLXCON2</b></td><td class="bits">15–0</td><td class="desc">Additional collision control (ECS).</td></tr>
+            <tr><td class="addr">$DFF028</td><td><b>INTMSK (alias)</b></td><td class="bits">15–0</td><td class="desc">Alternate interrupt mask locations on some systems.</td></tr>
+            <tr><td class="addr">$DFF040</td><td><b>BLTCON0</b></td><td class="bits">15–0</td><td class="desc">Blitter control register 0 — function, logic/masking, shift etc.</td></tr>
+            <tr><td class="addr">$DFF042</td><td><b>BLTCON1</b></td><td class="bits">15–0</td><td class="desc">Blitter control register 1 — modulo and minterms.</td></tr>
+            <tr><td class="addr">$DFF044</td><td><b>BLTAFWM</b></td><td class="bits">15–0</td><td class="desc">Blitter destination first word mask.</td></tr>
+            <tr><td class="addr">$DFF046</td><td><b>BLTALWM</b></td><td class="bits">15–0</td><td class="desc">Blitter destination last word mask.</td></tr>
+            <tr><td class="addr">$DFF048</td><td><b>BLTCPTH</b></td><td class="bits">31–0</td><td class="desc">Blitter A pointer (high/low parts across registers).</td></tr>
+            <tr><td class="addr">$DFF050</td><td><b>BLTDPTH</b></td><td class="bits">31–0</td><td class="desc">Blitter D pointer (destination) high/low.</td></tr>
+            <tr><td class="addr">$DFF058</td><td><b>BLTSIZE</b></td><td class="bits">15–0</td><td class="desc">Blitter size (Y, X) words specifying height and width of operation.</td></tr>
+            <tr><td class="addr">$DFF060</td><td><b>COP1LC</b></td><td class="bits">31–0</td><td class="desc">Copper list pointer (address of first copper instruction).</td></tr>
+            <tr><td class="addr">$DFF070</td><td><b>COPJMP1</b></td><td class="bits">15–0</td><td class="desc">Copper immediate jump — used to control Copper flow (ECS/AGA differences).</td></tr>
+            <tr><td class="addr">$DFF076</td><td><b>DMACON</b></td><td class="bits">15–0</td><td class="desc">DMA control register: master enable, control bits for blitter, copper, bitplanes, sprites, audio channels etc.</td></tr>
+            <tr><td class="addr">$DFF07A</td><td><b>ADKCON2</b></td><td class="bits">15–0</td><td class="desc">Audio/DMA additional control (ECS extensions).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Denise -->
+      <div class="panel" data-chip-panel="denise">
+        <h3>Denise — Video, Bitplanes, Sprites, Palette</h3>
+        <p class="small">Registers controlling display timing, bitplane pointers, sprites, colors, and playfield/window parameters.</p>
+        <table>
+          <thead><tr><th>Address</th><th>Name</th><th>Bits</th><th>Description</th></tr></thead>
+          <tbody id="denise-table">
+            <tr><td class="addr">$DFF080</td><td><b>DIWSTRT</b></td><td class="bits">15–0</td><td class="desc">Display window start — vertical/horizontal start positions.</td></tr>
+            <tr><td class="addr">$DFF082</td><td><b>DIWSTOP</b></td><td class="bits">15–0</td><td class="desc">Display window stop — vertical/horizontal end positions.</td></tr>
+            <tr><td class="addr">$DFF084</td><td><b>DDFSTRT</b></td><td class="bits">15–0</td><td class="desc">Data fetch start — where memory fetches begin.</td></tr>
+            <tr><td class="addr">$DFF086</td><td><b>DDFSTOP</b></td><td class="bits">15–0</td><td class="desc">Data fetch stop — end of fetch window.</td></tr>
+            <tr><td class="addr">$DFF088</td><td><b>DMACONR</b></td><td class="bits">15–0</td><td class="desc">DMA control (read) — status mirror of DMACON.</td></tr>
+            <tr><td class="addr">$DFF08E</td><td><b>BPLCON0</b></td><td class="bits">15–0</td><td class="desc">Bitplane control 0 — planes count, HAM, hires, etc.</td></tr>
+            <tr><td class="addr">$DFF090</td><td><b>BPLCON1</b></td><td class="bits">15–0</td><td class="desc">Bitplane control 1 — scrolling, priorities.</td></tr>
+            <tr><td class="addr">$DFF092</td><td><b>BPLCON2</b></td><td class="bits">15–0</td><td class="desc">Bitplane control 2 — sprite collision options (ECS additions).</td></tr>
+            <tr><td class="addr">$DFF0A0</td><td><b>BPL1PTH / BPL1PTL</b></td><td class="bits">31–0</td><td class="desc">Bitplane 1 pointer (high/low) — pointer to bitmap data in chip RAM.</td></tr>
+            <tr><td class="addr">$DFF0E0</td><td><b>BPL2PTH / BPL2PTL</b></td><td class="bits">31–0</td><td class="desc">Bitplane 2 pointer.</td></tr>
+            <tr><td class="addr">$DFF100</td><td><b>COLOR00</b></td><td class="bits">11–0</td><td class="desc">Palette register 0 (12-bit RGB: RRRR GGGG BBBB). COLOR00–COLOR31 contiguous.</td></tr>
+            <tr><td class="addr">$DFF120</td><td><b>SPR0POS</b></td><td class="bits">15–0</td><td class="desc">Sprite 0 position and control (X,Y and enable bits across registers).</td></tr>
+            <tr><td class="addr">$DFF140</td><td><b>SPR0CTL</b></td><td class="bits">15–0</td><td class="desc">Sprite control register: priority, expansion, collision enable.</td></tr>
+            <tr><td class="addr">$DFF180</td><td><b>COLOR31</b></td><td class="bits">11–0</td><td class="desc">Palette register 31 (end of palette block).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paula -->
+      <div class="panel" data-chip-panel="paula">
+        <h3>Paula — Audio channels, Disk, I/O</h3>
+        <p class="small">Audio channel sample pointers, lengths, periods, volumes, and I/O ports like disk and joystick registers.</p>
+        <table>
+          <thead><tr><th>Address</th><th>Name</th><th>Bits</th><th>Description</th></tr></thead>
+          <tbody id="paula-table">
+            <tr><td class="addr">$DFF0A0</td><td><b>AUD0LCH / AUD0LCL</b></td><td class="bits">31–0</td><td class="desc">Audio 0 sample pointer (high/low words).</td></tr>
+            <tr><td class="addr">$DFF0A4</td><td><b>AUD0LEN</b></td><td class="bits">15–0</td><td class="desc">Audio 0 sample length (in words).</td></tr>
+            <tr><td class="addr">$DFF0A6</td><td><b>AUD0PER</b></td><td class="bits">15–0</td><td class="desc">Audio 0 period (playback frequency control).</td></tr>
+            <tr><td class="addr">$DFF0A8</td><td><b>AUD0VOL</b></td><td class="bits">6–0</td><td class="desc">Audio 0 volume (0-64 typical range, 7-bit).</td></tr>
+            <tr><td class="addr">$DFF0B0</td><td><b>AUD1LCH / AUD1LCL</b></td><td class="bits">31–0</td><td class="desc">Audio 1 sample pointer.</td></tr>
+            <tr><td class="addr">$DFF0B4</td><td><b>AUD1LEN</b></td><td class="bits">15–0</td><td class="desc">Audio 1 length.</td></tr>
+            <tr><td class="addr">$DFF0B6</td><td><b>AUD1PER</b></td><td class="bits">15–0</td><td class="desc">Audio 1 period.</td></tr>
+            <tr><td class="addr">$DFF0B8</td><td><b>AUD1VOL</b></td><td class="bits">6–0</td><td class="desc">Audio 1 volume.</td></tr>
+            <tr><td class="addr">$DFF0D0</td><td><b>DSKDATAL</b></td><td class="bits">15–0</td><td class="desc">Disk DMA data register (low).</td></tr>
+            <tr><td class="addr">$DFF0D4</td><td><b>DSKPT</b></td><td class="bits">31–0</td><td class="desc">Disk DMA pointer/position registers for track reading.</td></tr>
+            <tr><td class="addr">$DFF0F0</td><td><b>INTREQ</b></td><td class="bits">15–0</td><td class="desc">Interrupt request (mirror/alias for INTREQ area).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <p class="small" style="margin-top:16px">Note: This page includes the complete modular reference for Agnus / Denise / Paula in a single interactive page. Use the filter box to quickly find a register. You can download the currently selected chip's table as an HTML snippet with the "Download Selected" button.</p>
+  </div>
+
+<script>
+  let currentChip = 'all';
+  function selectChip(chip, btn){
+    currentChip = chip;
+    document.querySelectorAll('.chip-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('[data-chip-panel]').forEach(panel=>{
+      if(chip==='all') panel.style.display = '';
+      else panel.style.display = (panel.getAttribute('data-chip-panel')===chip)?'':'none';
+    });
+    filter();
+  }
+  function filter(){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    const panels = Array.from(document.querySelectorAll('[data-chip-panel]'));
+    panels.forEach(panel=>{
+      if(currentChip!=='all' && panel.getAttribute('data-chip-panel')!==currentChip) return;
+      const tbody = panel.querySelector('tbody');
+      Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.includes(q)?'':'none';
+      });
+    });
+  }
+  function downloadAll(){
+    const chip = currentChip==='all'?'agnus,denise,paula':currentChip;
+    const chips = chip.split(',');
+    chips.forEach(c=>{
+      const panel = document.querySelector(`[data-chip-panel='${c}']`);
+      if(!panel){ alert('No panel for '+c); return; }
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${c.toUpperCase()} - Amiga Registers</title><style>body{font-family:Arial;background:#071022;color:#e6eef6;padding:18px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid rgba(255,255,255,0.06);text-align:left}th{background:#0d2b3a;color:#60a5fa}</style></head><body><h1>${c.toUpperCase()} Registers</h1>${panel.innerHTML}</body></html>`;
+      const blob = new Blob([html], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${c}-amiga-registers.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  }
+</script>
+</body>
+</html>
