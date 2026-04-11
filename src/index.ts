@@ -6,7 +6,7 @@ import Login from './views/login.jsx';
 import Registration from './views/Registration.jsx';
 import creditCard from './views/creditcard..jsx';
 import { setCookie, getCookie } from "hono/cookie";
-import staticRoutes from "../Routes/static/servestataic.ts";
+//import staticRoutes from "../Routes/static/servestataic.ts";
 import { db } from '../db.js';
 
 const app = new Hono()
@@ -136,7 +136,15 @@ app.get('/creditcard', (c) => {
   return c.html(creditCard());
 });
 
-app.route("/", staticRoutes);
+//app.route("/", staticRoutes);
+app.get('*', serveStatic({ root: './src/static' }))
+app.get('*', serveStatic({ root: './Video' }))
+app.get('*', serveStatic({ root: './images' }))
+app.get('*', serveStatic({ root: './src/views/artifacts/part1' }))
+app.get('*', serveStatic({ root: './src/views/artifacts/part2' }))
+app.get('*', serveStatic({ root: './src/views/artifacts/part3' }))
+app.get('*', serveStatic({ root: './src/views/artifacts/part2/styles' }))
+app.get('*', serveStatic({ root: './ADF' }))
 
 /**
  * 📦 Download file: ASM-One.adf
