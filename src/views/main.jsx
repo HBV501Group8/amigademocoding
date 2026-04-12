@@ -14,13 +14,7 @@ import { db } from '../../db';
  */
 export default function Main(cookie, userEmail) {
   //const val = getCookie("user"); // Example of using getCookie, you can replace "user" with the actual cookie name you want to retrieve
-  const lessons = db
-    .prepare(
-      'SELECT * FROM lessons where section_id = ' +
-        cookie +
-        ' ORDER BY order_index ASC'
-    )
-    .all();
+  const lessons = db.prepare("SELECT * FROM lessons where section_id = '" +  cookie + "' ORDER BY order_index ASC").all();
   return html`
     <!DOCTYPE html>
     <html lang="en">
