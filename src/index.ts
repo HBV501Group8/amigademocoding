@@ -6,7 +6,7 @@ import Login from './views/login.jsx';
 import Registration from './views/Registration.jsx';
 import creditCard from './views/creditcard..jsx';
 import { setCookie, getCookie } from 'hono/cookie';
-import staticRoutes from '../Routes/static/servestataic.ts';
+import staticRoutes from '../Routes/static/servestataic.js';
 import { db } from '../db.js';
 
 const app = new Hono();

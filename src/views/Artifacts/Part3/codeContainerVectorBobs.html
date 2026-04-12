@@ -43,14 +43,14 @@
 </p>
 
 <pre>
-    ewPoints	blk.b 512*2
+    
 
 ********* 
 SortBalls
 *********
 ; *NB  Sort routine coded by Treebeard of ALLIANCE!!!
-	lea	NewPoints,a0
-	move.l	#25,d7
+	lea	Wspace,a0
+	move.l	#32,d7
 	subq.l	#1,d7		; On 1st sort, look at (no. of points-1) after 1st,
 				; -1 for dbra
 Sort1
@@ -215,8 +215,8 @@ WBlit2	btst	#14,dmaconr(a6)		Blitter done
 	
 WBlit2a	btst	#14,dmaconr(a6)		Blitter done
 	bne.s	WBlit2a			If not wait
+	jsr sortballs	
 	bsr 	r3d	
-
 	jsr	BlitBalls
 	move.b	KeyDown(pc),d0
 	lea.l	WScr(pc),a0
@@ -703,6 +703,44 @@ BlitterBusy
 	btst	#14,dmaconr(a6)		; whats the blitter upto?
 	bne	BlitterBusy		; Slaving away
 	rts				; Fuck-all
+********* 
+SortBalls
+*********
+; *NB  Sort routine coded by Treebeard of ALLIANCE!!!
+	lea	Wspace,a0
+	move.l	#32,d7
+	subq.l	#1,d7		; On 1st sort, look at (no. of points-1) after 1st,
+				; -1 for dbra
+Sort1
+	move.l	d7,d6		; Keep d7 the same, use d6 instead
+	move.l	a0,a1		; Ditto a0 and a1
+	addq.l	#8,a1		; Start searching in entry after current one
+	sub.l	a2,a2		; No smaller value found so far
+	move.w	4(a0),d0	; d0=value to compare each entry with
+.loop	cmp.w	4(a1),d0	; Is this entryd0 
+	ble	.ok		; Nope
+	move.w	4(a1),d0	; d0=this entry
+	move.l	a1,a2		; a2=address of this entry
+.ok	addq.l	#8,a1		; Search others for smaller entry
+	dbra	d6,.loop
+	cmp.l	#0,a2		; Was a smaller value found?
+	beq	.ok1		; Nope
+	move.l	(a0),d0		; Swap first four bytes
+	move.l	(a2),(a0)
+	move.l	d0,(a2)+
+	move.l	4(a0),d0	; Swap secound four bytes
+	move.l	(a2),4(a0)
+	move.l	d0,(a2)+
+.ok1:
+	addq.w	#8,a0		; a0=address of next entry to sort
+	dbra	d7,Sort1	; sort other entries
+	rts
+WS:
+	lea.l	WSpace,a0
+
+	move.w	#200,(a0)+	Store x
+	move.w	#10,(a0)+	Store y
+	rts
 
 
 BlitBalls	
