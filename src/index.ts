@@ -137,9 +137,14 @@ app.get('/creditcard', (c) => {
   return c.html(creditCard());
 });
 
-/** Static routes */
-app.route('/', staticRoutes);
-
+app.get('*', serveStatic({ root: './src/static' }));
+app.get('*', serveStatic({ root: './Video' }));
+app.get('*', serveStatic({ root: './images' }));
+app.get('*', serveStatic({ root: './src/views/artifacts/part1' }));
+app.get('*', serveStatic({ root: './src/views/artifacts/part2' }));
+app.get('*', serveStatic({ root: './src/views/artifacts/part3' }));
+app.get('*', serveStatic({ root: './src/views/artifacts/part2/styles' }));
+app.get('*', serveStatic({ root: './ADF' }));
 /**
  * 📦 Download file: ASM-One.adf
  */
