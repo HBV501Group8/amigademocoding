@@ -2,11 +2,10 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import Main from './views/main.jsx';
-import Login from './views/login.jsx';
-import Registration from './views/Registration.jsx';
-import creditCard from './views/creditcard..jsx';
+import Login from './views/login.js';
+import Registration from './views/Registration.js';
+import creditCard from './views/creditcard..js';
 import { setCookie, getCookie } from 'hono/cookie';
-import staticRoutes from '../Routes/static/servestataic.js';
 import { db } from '../db.js';
 
 const app = new Hono();

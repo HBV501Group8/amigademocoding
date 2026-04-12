@@ -1,10 +1,10 @@
 import { html } from 'hono/html';
 
-import Header from './header.jsx';
-import Footer from './footer.jsx';
-import content from './content.jsx';
+import Header from './header.js';
+import Footer from './footer.js';
+import content from './content.js';
 
-import { db } from '../../db';
+import { db } from '../../db.js';
 
 
 /**
