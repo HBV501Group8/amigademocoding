@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { serveStatic } from '@hono/node-server/serve-static';
 import Main from './views/main.jsx';
 import Login from './views/login.js';
 import Registration from './views/Registration.js';
