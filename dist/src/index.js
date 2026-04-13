@@ -1,7 +1,6 @@
-import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
-import Main from './views/main.js';
+import Main from './views/main.jsx';
 import Login from './views/login.js';
 import Registration from './views/Registration.js';
 import creditCard from './views/creditcard..js';
@@ -164,9 +163,12 @@ app.get('/downloadsource3', serveStatic({
 /**
  * 🚀 Start server
  */
-serve({
-    fetch: app.fetch,
-    port: 3000,
-}, (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
-});
+// serve(
+//   {
+//     fetch: app.fetch,
+//     port: 3000,
+//   },
+//   (info) => {
+//     console.log(`Server is running on http://localhost:${info.port}`);
+//   }
+//);
