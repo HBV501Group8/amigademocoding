@@ -15,7 +15,7 @@ import content from './content.js';
 export default function Main(cookie, userEmail,lessons) {
   //const val = getCookie("user"); // Example of using getCookie, you can replace "user" with the actual cookie name you want to retrieve
  // const lessons = db.prepare("SELECT * FROM lessons where section_id = '" +  cookie + "' ORDER BY order_index ASC").all();
-  console.log('Lessons from DB:', lessons);
+  
   return html`
     <!DOCTYPE html>
     <html lang="en">

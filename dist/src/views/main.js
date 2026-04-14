@@ -17,13 +17,13 @@ export default function Main(cookie, userEmail, lessons) {
       <head>
         <meta charset="UTF-8" />
         <title>My Page</title>
-        <link rel="stylesheet" href="./styles.css" />
+        <link rel="stylesheet" href="./static/styles.css" />
       </head>
       <body>
         ${Header(cookie, userEmail)}
         <!-- include header -->
         <main>
-          ${content(lessons)}
+          ${content(lessons, cookie)}
           <!-- dynamic content -->
         </main>
         ${Footer()}

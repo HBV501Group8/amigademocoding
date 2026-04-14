@@ -78,6 +78,6 @@ CREATE TABLE Users (
 		Password TEXT NOT NULL
 
 	);
-INSERT INTO Users VALUES(1,'Sigurjon','sig@textor.is','test123');
+INSERT INTO Users VALUES(1,'Sigurjon','   ','test123');
 
 COMMIT;
