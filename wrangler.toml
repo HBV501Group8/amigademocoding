@@ -1,3 +1,10 @@
 name = "your-app"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+[assets]
+directory = "./public"
+binding = "ASSETS"
+[[d1_databases]]
+binding = "DB"
+database_name = "my-db"
+database_id = "0b2493ad-0040-4321-92e4-09214d7f2696"

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="./styles/containerCode.css"> 
+</head>
+<body>
+
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+      What is Double Buffering?
+      </p>
+      <p>
+
+      You have two bitplane buffers (let’s call them Buffer A and Buffer B). One buffer is displayed 
+      on the screen (the active buffer), while the CPU/Blitter draws into the other buffer 
+      (the back buffer).
+
+      Once drawing is complete, you swap the buffers by changing the hardware bitplane pointers 
+      (e.g. BPL1PTH/L, etc.), so the newly drawn buffer becomes visible. 
+      This way, the user never sees a partially drawn frame.
+
+    </p>
+</div>
+    <div class="textout">
+      <p>
+      Here we use the Blitter to display the image on the screen
+      and also introduce double buffering.
+        <pre>
+
+	SECTION TUT,CODE_C
+
+VHPOSR = $dff006
+COLOR00 = $dff180
+INTENA = $dff09a
+INTENAR = $dff01c
+CIA_PORT_A = $bfe001
+LeftMouse = 6
+LINE_WAIT = $ff
+BITPLANES_USED = 5
+SCREEN_SIZE = (40*256) * BITPLANES_USED
+
+bpl1pth		equ	$0e0
+bpl1ptl		equ	$0e2
+bpl2pth		equ	$0e4
+bpl2ptl		equ	$0e6
+Bpl3pth		equ	$0e8
+bpl3ptl		equ	$0ea
+bpl4pth		equ	$0ec
+bpl4ptl		equ	$0eE
+bpl5pth		equ	$0f0
+Bpl5ptl		equ	$0f2
+
+COP1LCH = $dff080
+
+BPLCON0 = $0100
+BPLCON1 = $0102
+BPLCON2 = $0104
+bpl1mod = $0108
+bpl2mod = $010a
+
+;color00		equ	$180
+color01		equ	$182
+color02		equ	$184
+color03		equ	$186
+color04		equ	$188
+color05		equ	$18a
+color06		equ	$18c
+color07		equ	$18e
+
+
+BLTCON0=$DFF040		
+BLTCON1=$DFF042
+BLTAFWM=$DFF044
+BLTALWM=$DFF046
+BLTCPTH=$DFF048
+BLTCPTL=$DFF04A
+BLTBPTH=$DFF04C
+BLTBPTL=$DFF04E
+BLTAPTH=$DFF050
+BLTAPTL=$DFF052
+BLTDPTH=$DFF054
+BLTDPTL=$DFF056
+BLTSIZE=$DFF058
+BLTCMOD=$DFF060
+BLTBMOD=$DFF062
+BLTAMOD=$DFF064
+BLTDMOD=$DFF066
+BLTCDAT=$DFF070
+BLTBDAT=$DFF072
+BLTADAT=$DFF074
+DMACONR=$DFF002
+
+INTERLEAVED=1
+
+ScreenHeight	equ	220
+ScreenWidth	equ	320/8
+ScreenDepth	equ	3	
+ScreenMemory	equ	ScreenHeight*ScreenWidth*ScreenDepth
+
+           
+
+ ; Save system copper
+            move.l 4.w,a6
+            clr.l d0
+            move.l #gfxname,a1
+            jsr -408(a6)
+            move.l d0,a1
+            move.l 38(a1),SysCopper
+            jsr -414(a6)
+
+            ;Save system interrupts
+            move.w INTENAR,SYSintena
+
+
+	    move #$7fff,$dff09a	
+
+            move.l #COPPERLIST,$dff080; COP1LCH
+
+	    MOVE.W #$81C0,$DFF096
+
+          ; Main loop
+Mainloop:
+WaitRaster:
+	cmp.b #$ff,$dff002
+	bne  WaitRaster
+
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	move.w	#ScreenDepth-1,d1
+	move.l	DScr(pc),d0	Get screen adress
+
+*	Double buffering
+NextPlane
+	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap	d0
+	add.l	#ScreenWidth,d0
+	addq.w	#8,a0
+	dbra	d1,NextPlane
+
+
+            bsr copyimage		
+
+*	Switch screens	
+
+	    lea.l	WScr(pc),a0
+	    lea.l	DScr(pc),a1
+	    move.l	(a0),d0
+	    move.l	(a1),d1
+	    move.l	d1,(a0)
+	    move.l	d0,(a1)
+	
+	
+            btst #LeftMouse,CIA_PORT_A
+            bne MainLoop
+RestoreSystem:
+	     or #$c000,SYSintena	
+             move SYSIntena,INTENA
+             move.l SysCopper,COP1LCH
+             move #0,d0
+             rts
+
+copyimage
+	lea	image2,a0
+	move.l	wscr,a1
+WBlitim	btst	#14,$dff002		Blitter done
+	bne.s	WBlitim			If not wait
+
+	move.l	a0,bltapth
+	move.l	a1,bltdpth
+	move.l	#-1,bltafwm
+	move.w	#0,bltamod
+	move.w	#0,bltdmod
+	move.l	#$09f00000,bltcon0
+	move.w	#(64*42*3)+20,bltsize
+	rts
+	incdir ""
+
+IMAGE2:		INCBIN	work:assembler/graphics/logopr320x42x3inter.raw
+
+
+CopperList:
+	DC.W	$008E,$2A81,$0090,$2AD1
+	DC.W	$0092,$0038,$0094,$00D0
+	
+	DC.W    bplcon0,$3200
+	DC.W	bplcon1,$0000
+	DC.W 	bplcon2,$000
+
+        IF INTERLEAVED=0
+	 DC.W	bpl1mod,0	
+ 	 DC.W 	bpl2mod,0
+	ELSE
+	 DC.W	bpl1mod,80	
+ 	 DC.W 	bpl2mod,80	
+	ENDC
+	
+BPLPointers:
+        dc.w	bpl1pth,0
+        dc.w	bpl1ptl,0
+        dc.w	bpl2pth,0
+        dc.w	bpl2ptl,0
+        dc.w	bpl3pth,0
+        dc.w	bpl3ptl,0
+        dc.w	bpl4pth,0
+        dc.w	bpl4ptl,0
+        dc.w	bpl5pth,0
+        dc.w	bpl5ptl,0
+
+	;LOGO COLORS
+	dc.w	$0180,$0000
+	dc.w	color01,$0EFF
+	dc.w	color02,$0BCD
+	dc.w	color03,$0ABC
+	dc.w	color04,$09AB
+	dc.w	color05,$0567
+	dc.w	color06,$0456
+	dc.w	color07,$0012
+
+	DC.W $FFDF,$FFFE
+        dc.w  $ffff,$fffe
+
+;Screen:		blk.b 10240*3,0
+
+gfxname:
+               dc.b "graphics.library",0
+	even
+SysCopper:
+              dc.l 0
+SysIntena:
+              dc.w 0
+
+
+
+WScr	dc.l	Screen0
+DScr	dc.l	Screen1
+
+******************************
+* And then the screen memory *
+******************************
+	Section	Screen,BSS_C
+
+Screen0	ds.b   screenmemory
+Screen1	ds.b   screenmemory
+
+
+        </pre>
+     </p>
+    </div>
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

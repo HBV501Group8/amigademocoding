@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hidden line 3d rotataing cube</title>
+  <link rel="stylesheet" href="../../static/">  </style>
+</head>
+<body>
+  <h1>Example Rotating filled 3d Cube.</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+    </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+  <p>
+      How can we fill a 3D cube with different colors on each face? 
+      The Blitter chip has this capability by enabling fill mode. 
+      However, to use the Blitter for filling, we must use a specific line-drawing 
+      routine that sets the fill carry bit correctly. This routine is designed to work 
+      with the Blitter's fill mode, allowing us to fill the interior 
+      of the cube's faces after drawing the edges. 
+  </p>
+<h3>
+    How can we set the Blitter to fill mode?
+    Well, let’s remember the role of the Blitter.
+</h3>
+<p>
+    A blitter is a hardware circuit that quickly moves (or “blits”) blocks of data 
+    (usually pixels or bitplanes) from one part of memory to another, 
+    often applying logical or arithmetic operations (e.g., AND, OR, XOR).
+
+    In the Amiga’s case (the most famous blitter), it can perform:
+
+    Line drawing (Bresenham-like)
+    Area filling
+    Fast image copying or masking
+    Logical combinations of three source channels (A, B, and C) and one destination (D)>
+  
+</p>
+<p>
+    The Amiga blitter didn’t directly draw arbitrary polygons — instead, it provided fill mode that you could use after you’ve drawn the polygon’s outline (edges).
+    The idea was:
+    Draw the edges of the polygon (using the blitter’s line draw mode).
+    Then, use the blitter fill mode to automatically fill the inside pixels between edges.
+</p>
+<p>
+    The fill logic uses a concept called "fill carry" — a bit that flips every time the blitter encounters an edge pixel while scanning a line horizontally.
+    Think of it like this:
+    The blitter scans across a line of pixels.
+    When it sees an edge pixel (set bit), it toggles its fill state.
+    If “fill carry” is on, pixels get filled until the next edge toggles it off.
+    This produces the standard “even–odd” fill rule (enter polygon → fill → exit → stop).
+</p>
+<h3>
+    To Enable Fill Mode
+</h3>
+<p>
+    You set bit 0 of BLTCON1 (BLTCON1_F_LINE) and bit 4 of BLTCON1 (BLTCON1_F_FILL) depending on hardware revision.
+    Typical configuration (Amiga 500–1200 style):
+    Set BLTCON1 bit 4 (FILL MODE) to 1
+    → this activates the fill logic.
+    The fill logic state (fill carry) is in bit 2 of BLTCON1:
+    0 → clear fill carry (start unfilled)
+    1 → set fill carry (start filled)
+</p>
+<img src="Images/fill.PNG" alt="">
+
+<h3>
+    Here is an example
+</h3>
+<pre>
+FillPage:
+	btst	#6,$dff002
+	bne.s	Fillpage        Wait for blitter
+	move.w	#4-1,d7         nr of bitplanes
+	move.l	wscr,a0         Screen address
+	add.l	#40*256,a0      negin for bottom to top
+	add.l	#40*255,a0
+	add.l	#40*255,a0
+	add.l	#40*255,a0
+fillloop
+	btst	#6,$dff002
+	bne.s	Fillloop
+	move.w	#$09f0,$dff040	; BLTCON0
+	move.w	#$0012,$dff042		; BLTCON1 (EFE!DESC)
+	move.l	#$ffffffff,$dff044	; BLTAFWM
+	move.l	a0,$dff050		; BLTAPT
+	move.l	a0,$dff054		; BLTDPT
+	move.l	#0,$dff064		; BLTAMOD&BLTDMOD
+	move.w	#(255*64)+20,$dff058
+	sub.l	#40*256,a0
+	dbra	d7,fillloop
+
+	rts
+
+</pre>
+    <h3>
+        The drawline routine that is required
+    </h3>
+    <pre>
+* written for kuma-seka ages ago, works fine and
+* can be optimized for special cases...
+* the line is (x0,y0)-(x1,y1) = (d0,d1)-(d2,d3) ...
+* Remember that you must have DFF000 in a6 and
+* The screen start address in a0.
+* Only a1-a7 and d7 is left unchanged.
+*    __   .
+*  /( |( )|\/ '(|)
+* /  )|(|\|/\   |)
+
+Screen_widht=40 ;40 bytes wide screen...
+fill_lines     ;(a6=$dff000, a0=start of bitplane to draw in)
+
+* color of facet
+
+	move.l	wscr,a0
+	lea	$dff000,a6
+	move.l	wscr,a0
+
+        cmp.w   d1,d3
+        beq.w   noline
+        ble.s   lin1
+        exg     d1,d3
+        exg     d0,d2
+lin1:   sub.w   d2,d0
+        move.w  d2,d5
+        asr.w   #3,d2
+        ext.l   d2
+        sub.w   d3,d1
+        muls    #Screen_Widht,d3        ;can be optimized here..
+        add.l   d2,d3
+        add.l   d3,a0
+        and.w   #$f,d5
+        move.w  d5,d2
+        eor.b   #$f,d5
+        ror.w   #4,d2
+        or.w    #$0b4a,d2
+        swap    d2
+        tst.w   d0
+        bmi.s   lin2
+        cmp.w   d0,d1
+        ble.s   lin3
+        move.w  #$41,d2
+        exg     d1,d0
+        bra.s   lin6
+lin3:   move.w  #$51,d2
+        bra.s   lin6
+lin2:   neg.w   d0
+        cmp.w   d0,d1
+        ble.s   lin4
+        move.w  #$49,d2
+                exg     d1,d0
+        bra.s   lin6
+lin4:   move.w  #$55,d2
+lin6:   asl.w   #1,d1
+        move.w  d1,d4
+        move.w  d1,d3
+        sub.w   d0,d3
+        ble.s   lin5
+        and.w   #$ffbf,d2
+lin5:   move.w  d3,d1
+        sub.w   d0,d3
+        or.w    #2,d2
+        lsl.w   #6,d0
+        add.w   #$42,d0
+	move.w	d7,-(sp)
+	move.w	#1-1,d7
+
+	cmp.w	#1,color
+	bne	col2
+	move.w	#1-1,d7
+	bra	linestart
+col2	
+	cmp.w	#2,color
+	bne	col3
+	add.l	#40*256,a0
+	move.w	#1-1,d7
+	bra	linestart
+col3	cmp.w	#3,color
+	bne	col4
+	move.w	#2-1,d7
+	bra	linestart
+col4	cmp.w	#4,color
+	bne	col5
+	add.l	#(40*256)*2,a0
+	move.w	#1-1,d7
+	bra	linestart
+*
+col5	cmp.w	#5,color
+	bne	col6
+	move.w	#2-1,d7
+	bra	linestart
+col6	cmp.w	#6,color
+	bne	col7
+	move.w	#2-1,d7
+	add.l	#(40*256),a0
+	bra	linestart
+col7	cmp.w	#7,color
+	bne	col8
+	move.w	#3-1,d7
+	bra	linestart
+col8	cmp.w	#8,color
+	bne	col9
+	move.w	#1-1,d7
+	add.w	#(40*256)*3,a0
+	bra	linestart
+*
+col9	cmp.w	#9,color
+	bne	col10
+	move.w	#2-1,d7
+	bra	linestart
+*
+col10	cmp.w	#10,color
+	bne	col11
+	move.w	#3-1,d7
+	bra	linestart
+*
+col11	cmp.w	#11,color
+	bne	col12
+	move.w	#3-1,d7
+	bra	linestart
+col12	cmp.w	#12,color
+	bne	col13
+	move.w	#2-1,d7
+	add.w	(40*256)*2,a0
+	move.w	#2-1,d7
+*	bra	linestart
+col13	cmp.w	#13,color
+	bne	col14
+	move.w	#3-1,d7
+	bra	linestart
+col14	cmp.w	#14,color
+	bne	col15
+	add.w	(40*256)*1,a0
+	move.w	#3-1,d7
+col15	cmp.w	#15,color
+	move.w	#4-1,d7
+	bra	linestart
+
+    </pre>
+
+</body>
+</html>

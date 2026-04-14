@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="../../static/codeContainer.css">  </style>
+</head>
+<body>
+  <h1>Example Rotating 3d Cube.</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+       Now we can add rotation to the wireframe 3D cube.
+		We have already done the math in the previous tutorial for rotating around the X, Y, and Z axes.
+      </p>
+   <p>
+        Coordinate system (right-handed)
+        Let’s assume the standard right-handed system used in most math/graphics:
+
+        X axis → left to right
+        Y axis  → up and down
+        Z axis → out of / into the screen
+      </p>
+      <pre>
+        
+  FORMULA FOR ROTATIONS IN THREE DIMENSION WITH THREE ANGLES
+  (x,y,z is the original (x,y,z) coordinate.
+   c1=cos(angle1), s1=sin(angle1), c2=cos(angle2) and so on...)
+
+  If you want to rotate a lot of coordinates with the same angles you
+  first calculate these values:
+  
+                       xx=c2*c1
+                       xy=c2*s1
+                       xz=s2
+                       yx=c3*s1+s3*s2*c1
+                       yy=-c3*c1+s3*s2*s1
+                       yz=-s3*c2
+                       zx=s3*s1-c3*s2*c1;s2*c1+c3*s1
+                       zy=-s3*c1-c3*s2*s1;c3*c1-s2*s1
+                       zz=c3*c2
+      </pre>
+      <p>
+  Then, for each coordinate, you use the following multiplication
+  to get the rotated coordinates:
+  </p>
+  <pre>
+                       x''=xx * x + xy * y + xz * z
+                       y''=yx * x + yy * y + yz * z
+                       z''=zx * x + zy * y + zz * z
+</pre>
+    <p>
+  So, you only have to calculate the constants once for every new angle,
+  and THEN you use nine multiplications for every point you wish to
+  rotate to get the new set of points.
+      </p>
+      <p>
+        Here is my rotation routine based on this formula.
+		It takes sine and cosine tables and 3D coordinates as input, 
+		and produces rotated coordinates as output.
+      </p>
+      <pre>
+***********************************
+* Rotation routine. Precalculate  *
+* constants	 		  			  *	
+***********************************
+
+Rotate
+	lea 	sin,a0
+	lea 	cos,a1
+	lea	stars,a2
+	lea	rotcoords,a3
+	move.w	thetax,d0
+	add.w	#4,d0
+*	add.w	d0,d0
+	and.w 	#$3ff,d0
+	move.w	d0,thetax
+	move.w	(a0,d0),sinx	sin x
+	move.w	(a1,d0),cosx	cos x
+	move.w	thetay,d0
+	add.w	#2,d0
+*	add.w	d0,d0
+	and.w	#$3ff,d0
+	move.w	d0,thetay
+	move.w	(a0,d0),siny	sin y
+	move.w	(a1,d0),cosy	cos y
+	move.w	thetaz,d0
+	add.w	#4,d0
+*	add.w	d0,d0
+	and 	#$3ff,d0
+	move.w	d0,thetaz
+	move.w	(a0,d0),sinz	sin z
+	move.w	(a1,d0),cosz	cos z
+	moveq	#14,d6		
+	move.w	#starsnr-1,d7	
+
+rloop
+	move.w	(a2)+,d0
+	move.w	(a2)+,d1
+	move.w	(a2)+,d2
+	move.w	d0,d3
+	move.w	d1,d4
+	move.w	d2,d5
+
+************************************
+* Rotation of x axis		   *	
+************************************
+
+	muls	cosx,d1 	y * cos(thetax)
+	muls	sinx,d2		z * sin(Thetax)
+	sub.l	d2,d1		y * cos(thetax) - z * sin(Thetax) 
+	asr.l	d6,d1
+*	swap 	d1
+	move.w	d1,temp1		new y
+
+*	move.w	d3,d0
+	move.w	d4,d1
+	move.w	d5,d2
+
+
+	muls	cosx,d2 	z * cos(thetax)
+	muls	sinx,d1		y * sin(Thetax)
+	add.l	d1,d2		y * cos(thetax) + z * sin(Thetax) 
+	asr.l	d6,d2
+*	swap	d2
+	move.w	d2,temp2		new z
+	move.w	temp1,desty
+	move.w	temp2,destz
+
+	move.w	d3,d0	
+	move.w	destz,d2
+
+************************************
+* Rotation of y axis		   *	
+************************************
+
+	muls	cosy,d2		z * cos(y)
+	muls	siny,d0		x * sin(y)
+	sub.l	d0,d2		x * sin(y) - z * cos(y)
+	asr.l	d6,d2
+*	swap	d2
+	move.w	d2,temp1	new z
+
+	move.w	d3,d0
+	move.w	destz,d2
+
+	muls	cosy,d0		x * cos(y)
+	muls	siny,d2		z * sin(y)
+	add.l	d2,d0		x * cos(y) + z * sin(y)
+	asr.l	d6,d0
+*	swap	d0
+	move.w	d0,temp2		new x	
+
+	move.w	temp1,destz
+	move.w	temp2,destx
+
+	move.w	destx,d0
+	move.w	desty,d1
+
+************************************
+* Rotation of z axis		   *	
+************************************
+
+	muls	cosz,d0		x * cos(z)
+	muls	sinz,d1		y * sin(z)
+	sub.l	d1,d0		x * cos(z) - y * sin(z)
+	asr.l	d6,d0
+*	swap	d0
+	move.w	d0,temp1
+
+	move.w	destx,d0
+	move.w	desty,d1
+			 	
+	muls	cosz,d1
+	muls	sinz,d0
+	add.l	d0,d1
+	asr.l	d6,d1
+*	swap	d1
+	move.w	d1,temp2
+
+	move.w	temp1,destx
+	move.w	temp2,desty
+
+	move.w	destx,d0
+	move.w	desty,d1
+	move.w	destz,d2
+
+	move.w	d0,(a3)+
+	move.w	d1,(a3)+
+	move.w	d2,(a3)+
+
+
+	dbra	d7,rloop	
+	rts
+      </pre>
+      <p>
+         You don't have to understand this routine but it's ok for 
+         simple use
+        </p>
+   
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

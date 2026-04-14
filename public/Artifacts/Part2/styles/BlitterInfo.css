@@ -1,0 +1,53 @@
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0b0e12;
+      color: #e8eef8;
+      line-height: 1.6;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h1, h2, h3 {
+      color: #4cc9f0;
+    }
+
+    h1 { font-size: 2em;
+         margin-top: 0; 
+       }
+
+    h2 { margin-top: 1.5em; 
+         font-size: 1.5em; 
+       }
+
+    h3 { margin-top: 1em; 
+         font-size: 1.2em; 
+       }
+    p { margin: 0.6em 0; }
+
+    code {
+      background: #1c2736;
+      color: #80ffdb;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+
+    .card {
+      background: #121720;
+      border: 1px solid #1c2736;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+      box-shadow: 0 6px 16px rgb(0 0 0 / 35%);
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 0.9em;
+      color: #9db0c7;
+      border-top: 1px solid #1c2736;
+      padding-top: 10px;
+    }
+  

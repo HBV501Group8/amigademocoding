@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Motorola 68000 Addressing Modes — Interactive Reference</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7dd3fc;--muted:#94a3b8;--glass:rgba(255,255,255,0.02)}
+    html,body{height:100%}
+    body{font-family:Inter,Segoe UI,Roboto,Helvetica,Arial; margin:0; background:linear-gradient(180deg,#071124 0%, #071624 100%); color:#e6eef6;}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius:12px; padding:12px; box-shadow: 0 6px 18px rgba(2,6,23,0.6);}
+    .left .mode-list{display:flex;flex-direction:column;gap:6px;max-height:68vh;overflow:auto;padding-right:6px}
+    button.mode{background:transparent;border:1px solid rgba(125,211,252,0.08);padding:10px;text-align:left;border-radius:8px;color:var(--accent);cursor:pointer}
+    button.mode.active{background:linear-gradient(90deg, rgba(125,211,252,0.06), rgba(125,211,252,0.02)); border-color:rgba(125,211,252,0.16)}
+    .controls{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+    .reg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    input[type=text], input[type=number], textarea, select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .mini{font-size:12px;padding:6px}
+    pre.snippet{background:rgba(0,0,0,0.22);padding:10px;border-radius:8px;overflow:auto}
+    .result{margin-top:12px;padding:12px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+    .example-list{display:flex;flex-direction:column;gap:10px}
+    .example{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    .controls-row{display:flex;gap:8px}
+    .footer{color:var(--muted);font-size:12px;margin-top:14px}
+    .kbd{background:#071324;border-radius:6px;padding:6px 8px;font-family:monospace;font-size:12px}
+    .big{font-weight:700;color:#bfefff}
+    .note{color:var(--muted);font-size:13px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr;}.left{order:2}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#042035,#08304a);display:flex;align-items:center;justify-content:center;font-weight:700">68000</div>
+      <div>
+        <h1>Motorola 68000 Addressing Modes — Interactive Reference</h1>
+        <div class="subtitle">Select a mode to see explanation, assembly examples and an interactive Effective Address calculator.</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="panel left">
+        <strong>Addressing modes</strong>
+        <div class="mode-list" id="modeList"></div>
+
+        <div style="margin-top:12px">
+          <div class="note">Registers (hex). Change values then click <span class="kbd">Apply</span> to use them in examples.</div>
+          <div style="margin-top:8px" class="reg-grid">
+            <div>
+              <label>D0</label>
+              <input id="D0" type="text" value="00000010">
+            </div>
+            <div>
+              <label>D1</label>
+              <input id="D1" type="text" value="00000000">
+            </div>
+            <div>
+              <label>D2</label>
+              <input id="D2" type="text" value="00000000">
+            </div>
+            <div>
+              <label>D3</label>
+              <input id="D3" type="text" value="00000000">
+            </div>
+            <div>
+              <label>A0</label>
+              <input id="A0" type="text" value="00001000">
+            </div>
+            <div>
+              <label>A1</label>
+              <input id="A1" type="text" value="00002000">
+            </div>
+            <div>
+              <label>A2</label>
+              <input id="A2" type="text" value="00003000">
+            </div>
+            <div>
+              <label>A3</label>
+              <input id="A3" type="text" value="00004000">
+            </div>
+            <div>
+              <label>PC</label>
+              <input id="PC" type="text" value="00010000">
+            </div>
+            <div style="grid-column:span 3">
+              <label>Memory (hex bytes, address:value lines like <em>1000: 12 34 56 78</em>)</label>
+              <textarea id="memory" rows="4">0010: 12 34 56 78
+1004: AA BB CC DD
+1008: 11 22 33 44
+00001010: 99 88 77 66
+</textarea>
+            </div>
+            <div style="grid-column:span 4;margin-top:6px">
+              <div class="controls-row">
+                <button id="applyRegs" class="mini">Apply</button>
+                <button id="resetRegs" class="mini">Reset example regs</button>
+                <button id="loadExamples" class="mini">Load examples for this mode</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel right">
+        <div id="modeTitle"><strong>Pick a mode</strong></div>
+        <div id="modeDesc" class="note" style="margin-top:8px">Click any mode at left.</div>
+
+        <div id="modeExamples" style="margin-top:12px"></div>
+
+        <div id="eaCalc" style="margin-top:14px" class="result">
+          <strong>EA Calculator</strong>
+          <div class="note" style="margin-top:6px">Choose mode, fill extra fields as needed and click <span class="kbd">Compute EA</span>.</div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:end">
+            <div>
+              <label>Mode</label>
+              <select id="calcMode"></select>
+            </div>
+            <div>
+              <label>Register</label>
+              <select id="calcReg">
+                <option value="D0">D0</option><option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option>
+                <option value="A0">A0</option><option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option>
+              </select>
+            </div>
+            <div>
+              <label>Displacement / Immediate (hex)</label>
+              <input id="calcDisp" type="text" placeholder="e.g. 0010 or FF">
+            </div>
+            <div>
+              <label>Index (e.g. D0.W or A1.L)</label>
+              <input id="calcIndex" type="text" placeholder="D0.W or A1.L">
+            </div>
+            <div style="grid-column:span 2">
+              <label>Optional literal (use for Immediate or absolute)</label>
+              <input id="calcLiteral" type="text" placeholder="e.g. 1234 or 00001000">
+            </div>
+            <div style="grid-column:span 2;display:flex;gap:8px;margin-top:8px">
+              <button id="computeEA" class="mini">Compute EA</button>
+              <button id="dumpMem" class="mini">Dump memory slice</button>
+            </div>
+          </div>
+
+          <div id="eaOutput" style="margin-top:12px"></div>
+        </div>
+
+        <div style="margin-top:12px" class="footer">This demo covers the classic 68000 addressing modes: Data/Address register direct; (An), (An)+, -(An), (d16,An), (d8,An,Xn), absolute short/long, PC-relative (d16,PC) and (d8,PC,Xn), and immediate. It computes Effective Address (EA) and shows operand bytes from the memory you set. Not a full CPU emulator, but a learning aid.</div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data for modes
+    const modes = [
+      {id:'Dn', title:'Data register direct (Dn)', code:'Dn', desc:'Operand is in data register Dn. No memory access. Example: MOVE.L D0,D1'},
+      {id:'An', title:'Address register direct (An)', code:'An', desc:'Operand is the 32-bit address register An (as a register value). Example: MOVE.L A0,D0'},
+      {id:'(An)', title:'Address register indirect (An)', code:'(An)', desc:'EA = contents of An (32-bit) — memory at that address is accessed.'},
+      {id:'(An)+', title:'Address register indirect with postincrement (An)+', code:'(An)+', desc:'EA = An; then An += size (word/long) depending on instruction.'},
+      {id:'-(An)', title:'Address register indirect with predecrement -(An)', code:'-(An)', desc:'An -= size; EA = An.'},
+      {id:'(d16,An)', title:'(d16,An) — with 16-bit displacement', code:'(d16,An)', desc:'EA = An + sign-extended 16-bit displacement.'},
+      {id:'(d8,An,Xn)', title:'(d8,An,Xn) — with index', code:'(d8,An,Xn)', desc:'EA = An + sign-extended 8-bit displacement + index register (word or long). Index format: Dn.W (16-bit) or An.L (32-bit) depending on selection.'},
+      {id:'(xxx).W', title:'Absolute Short (16-bit) — (xxx).W', code:'ABS.W', desc:'16-bit absolute address in instruction (sign-extended to 32-bit on 68000). Access memory at that address.'},
+      {id:'(xxx).L', title:'Absolute Long (32-bit) — (xxx).L', code:'ABS.L', desc:'32-bit absolute address in instruction.'},
+      {id:'(d16,PC)', title:'PC-relative (d16,PC)', code:'(d16,PC)', desc:'EA = PC + sign-extended 16-bit displacement (PC is address of following word). Useful for position-independent data.'},
+      {id:'(d8,PC,Xn)', title:'PC-relative with index (d8,PC,Xn)', code:'(d8,PC,Xn)', desc:'EA = PC + sign-extended 8-bit displacement + index register.'},
+      {id:'#imm', title:'Immediate (#<data>)', code:'#imm', desc:'Operand is encoded in the instruction stream immediately (no EA — value is in the instruction). Example: MOVE.W #$1234,D0'}
+    ];
+
+    // Populate UI
+    const modeList = document.getElementById('modeList');
+    const calcMode = document.getElementById('calcMode');
+    const modeTitle = document.getElementById('modeTitle');
+    const modeDesc = document.getElementById('modeDesc');
+    const modeExamples = document.getElementById('modeExamples');
+
+    modes.forEach((m,idx)=>{
+      const btn = document.createElement('button'); btn.className='mode'; btn.innerText = m.title; btn.onclick = ()=>selectMode(idx); modeList.appendChild(btn);
+      const opt = document.createElement('option'); opt.value = m.id; opt.text = m.title; calcMode.appendChild(opt);
+    });
+
+    let selected = 0; selectMode(0);
+
+    function selectMode(i){
+      selected = i; Array.from(modeList.children).forEach((b,idx)=>b.classList.toggle('active',idx===i));
+      const m = modes[i]; modeTitle.innerHTML = '<strong>'+m.title+'</strong> <span class="note">('+m.code+')</span>'; modeDesc.innerHTML = m.desc;
+      showExamplesFor(m.id);
+      document.getElementById('calcMode').value = m.id;
+    }
+
+    function showExamplesFor(id){
+      const ex = document.createElement('div'); ex.className='example-list';
+      modeExamples.innerHTML='';
+
+      const commonExamples = {
+        'Dn': [
+          {asm:'MOVE.L D0,D1', explain:'Copies full 32-bit contents of D0 into D1. No memory access.'},
+          {asm:'ADD.W #$10,D0', explain:'Immediate adds to D0 — still register op.'}
+        ],
+        'An': [
+          {asm:'MOVE.L A0,D0', explain:'Copy address register into data register.'}
+        ],
+        '(An)': [
+          {asm:'MOVE.B (A0),D0', explain:'Load byte from memory at address in A0 into low byte of D0.'},
+        ],
+        '(An)+': [
+          {asm:'MOVE.W (A0)+,D0', explain:'Load word from memory at A0 then increment A0 by 2.'}
+        ],
+        '-(An)': [
+          {asm:'MOVE.L -(A0),D1', explain:'Pre-decrement A0 by 4, then load a long word from memory at A0.'}
+        ],
+        '(d16,An)': [
+          {asm:'MOVE.L 0x10(A0),D0', explain:'Load long word from address A0 + 0x10.'}
+        ],
+        '(d8,An,Xn)': [
+          {asm:'MOVE.W 8(A0,D1.W),D2', explain:'EA = A0 + sign-extended 8-bit 8 + lower 16 bits of D1 (treated as word).'},
+        ],
+        'ABS.W': [
+          {asm:'MOVE.B 0x1000.W,D0', explain:'Load byte from absolute address 0x1000 (16-bit field).'},
+        ],
+        'ABS.L': [
+          {asm:'MOVE.L 0x00001000.L,D0', explain:'Load long word from absolute 32-bit address.'},
+        ],
+        '(d16,PC)': [
+          {asm:'MOVE.L 0x20(PC),D0', explain:'Load long from PC + 0x20 (useful for accessing data tables after code).'}
+        ],
+        '(d8,PC,Xn)': [
+          {asm:'MOVE.W 4(PC,D0.W),D1', explain:'EA = PC + sign-extended 8-bit 4 + D0.W.'}
+        ],
+        '#imm': [
+          {asm:'MOVE.W #$1234,D0', explain:'Immediate constant (word) placed in instruction and moved into D0.'}
+        ]
+      };
+
+      (commonExamples[id] || [{asm:'—',explain:'No example available'}]).forEach(e=>{
+        const node = document.createElement('div'); node.className='example'; node.innerHTML = `<div style="font-family:monospace">${e.asm}</div><div class="note">${e.explain}</div>`; ex.appendChild(node);
+      });
+
+      modeExamples.appendChild(ex);
+    }
+
+    // Register / memory model
+    let state = {D: new Array(8).fill(0), A:new Array(8).fill(0), PC:0, mem:{}};
+
+    function hexToUint32(s){ s = s.replace(/^0x/i,''); if(!s) return 0; return parseInt(s,16)>>>0; }
+    function parseRegs(){
+      for(let i=0;i<8;i++){ const v = document.getElementById('D'+i).value.trim(); if(v) state.D[i]=hexToUint32(v); }
+      for(let i=0;i<4;i++){ const v = document.getElementById('A'+i).value.trim(); if(v) state.A[i]=hexToUint32(v); }
+      state.PC = hexToUint32(document.getElementById('PC').value.trim());
+      // memory parse
+      state.mem = {};
+      const memtext = document.getElementById('memory').value.split(/\n/).map(l=>l.trim()).filter(l=>l);
+      memtext.forEach(line=>{
+        // formats: "addr: bytes...". allow hex with 0x or no prefix
+        const m = line.split(':'); if(m.length<2) return; const addr = parseInt(m[0].trim(),16); const bytes = m[1].trim().split(/\s+/).map(b=>parseInt(b,16)&0xFF);
+        let a = addr; bytes.forEach(b=>{ state.mem[a]=b; a++; });
+      });
+    }
+
+    document.getElementById('applyRegs').onclick = ()=>{ parseRegs(); alert('Registers & memory applied to demo state.'); };
+    document.getElementById('resetRegs').onclick = ()=>{ document.getElementById('D0').value='00000010'; document.getElementById('A0').value='00001000'; document.getElementById('A1').value='00002000'; document.getElementById('PC').value='00010000'; parseRegs(); alert('Reset registers'); };
+
+    parseRegs();
+
+    // Helpers to read memory little? 68000 is big-endian. We'll treat memory as byte-addressable big-endian.
+    function readByte(addr){ return state.mem[addr]===undefined?0:state.mem[addr]; }
+    function readWord(addr){ const hi = readByte(addr); const lo = readByte(addr+1); return ((hi<<8)|lo)>>>0; }
+    function readLong(addr){ return ((readWord(addr)<<16) | readWord(addr+2))>>>0; }
+
+    function toHex32(v){ return ('00000000'+(v>>>0).toString(16).toUpperCase()).slice(-8); }
+    function signExtend8(v){ return (v & 0x80) ? (v | 0xFFFFFF00)>>>0 : v; }
+    function signExtend16(v){ return (v & 0x8000) ? (v | 0xFFFF0000)>>>0 : v; }
+
+    // EA calculation
+    function computeEA(mode, reg, dispHex, indexStr, literal){
+      // reg for modes that need an An or Dn: reg like A0 or D0
+      const rIsA = reg && reg.startsWith('A');
+      const regNum = reg? parseInt(reg.slice(1)):0;
+      let result = {ea:null, description:'', value:null};
+      switch(mode){
+        case 'Dn': result.description = `Data register ${reg}. No EA. Value=${toHex32(state.D[regNum])}`; result.value = state.D[regNum]; break;
+        case 'An': result.description = `Address register ${reg}. Value=${toHex32(state.A[regNum])}`; result.value = state.A[regNum]; break;
+        case '(An)': {
+          const addr = state.A[regNum]>>>0; result.ea = addr; result.description = `(A${regNum}) -> memory at ${toHex32(addr)}`; result.value = readLong(addr); break;
+        }
+        case '(An)+': {
+          const addr = state.A[regNum]>>>0; result.ea = addr; result.description = `(A${regNum})+ (postinc) — reads at ${toHex32(addr)} then A${regNum} += size (assume word=2 for demo)`; result.value = readWord(addr); break;
+        }
+        case '-(An)': {
+          const newA = (state.A[regNum]-4)>>>0; result.ea = newA; result.description = `-(A${regNum}) pre-decrement by 4 -> ${toHex32(newA)}`; result.value = readLong(newA); break;
+        }
+        case '(d16,An)': {
+          const disp = dispHex? parseInt(dispHex,16)&0xFFFF:0; const sdisp = signExtend16(disp); const addr = (state.A[regNum] + sdisp)>>>0; result.ea = addr; result.description = `(d16,A${regNum}) with d16=${('0000'+disp.toString(16)).slice(-4)} (signed ${ (sdisp>>>0) }) => EA=${toHex32(addr)}`; result.value = readLong(addr); break;
+        }
+        case '(d8,An,Xn)': {
+          const disp = dispHex? parseInt(dispHex,16)&0xFF:0; const sdisp = signExtend8(disp); let idxVal = 0;
+          if(indexStr){ const m = indexStr.match(/^([DA])(\d)\.(W|L)$/i); if(m){ const t=m[1].toUpperCase(), n=parseInt(m[2]); const sz=m[3].toUpperCase(); idxVal = (t==='D') ? (sz==='W'? (state.D[n]&0xFFFF) : state.D[n]) : state.A[n]; }
+          }
+          const addr = (state.A[regNum] + (sdisp>>>0) + (idxVal>>>0))>>>0; result.ea = addr; result.description = `(d8,A${regNum},${indexStr||'no index'}) -> d8=${('00'+(disp).toString(16)).slice(-2)} s=${(sdisp>>>0)} idx=${toHex32(idxVal)} => EA=${toHex32(addr)}`; result.value = readWord(addr); break;
+        }
+        case 'ABS.W': {
+          const addr = literal? ((parseInt(literal,16)&0xFFFF)>>>0) : 0; result.ea = addr; result.description = `Absolute word ${('0000'+addr.toString(16)).slice(-4)} (zero-extended) -> EA=${toHex32(addr)}`; result.value = readByte(addr); break;
+        }
+        case 'ABS.L': {
+          const addr = literal? (parseInt(literal,16)>>>0) : 0; result.ea = addr; result.description = `Absolute long ${toHex32(addr)} -> EA=${toHex32(addr)}`; result.value = readLong(addr); break;
+        }
+        case '(d16,PC)': {
+          const disp = dispHex? parseInt(dispHex,16)&0xFFFF:0; const sdisp = signExtend16(disp); const pcNext = state.PC; const addr = (pcNext + sdisp)>>>0; result.ea = addr; result.description = `PC-relative d16=${('0000'+disp.toString(16)).slice(-4)} -> PC(${toHex32(pcNext)})+d16 => EA=${toHex32(addr)}`; result.value = readLong(addr); break;
+        }
+        case '(d8,PC,Xn)': {
+          const disp = dispHex? parseInt(dispHex,16)&0xFF:0; const sdisp = signExtend8(disp); let idxVal = 0; if(indexStr){ const m = indexStr.match(/^([DA])(\d)\.(W|L)$/i); if(m){ const t=m[1].toUpperCase(), n=parseInt(m[2]); const sz=m[3].toUpperCase(); idxVal = (t==='D') ? (sz==='W'? (state.D[n]&0xFFFF) : state.D[n]) : state.A[n]; } }
+          const addr = (state.PC + (sdisp>>>0) + (idxVal>>>0))>>>0; result.ea = addr; result.description = `(d8,PC,${indexStr||'no index'}) -> PC(${toHex32(state.PC)}) + ${('00'+disp.toString(16)).slice(-2)} + idx ${toHex32(idxVal)} => EA=${toHex32(addr)}`; result.value = readWord(addr); break;
+        }
+        case '#imm': {
+          const val = literal? parseInt(literal,16)>>>0 : 0; result.description = `Immediate value ${toHex32(val)}`; result.value = val; break;
+        }
+        default: result.description = 'Unknown mode'; break;
+      }
+      return result;
+    }
+
+    document.getElementById('computeEA').onclick = ()=>{
+      const mode = document.getElementById('calcMode').value; const reg = document.getElementById('calcReg').value; const disp = document.getElementById('calcDisp').value.trim(); const idx = document.getElementById('calcIndex').value.trim(); const lit = document.getElementById('calcLiteral').value.trim(); parseRegs(); const out = computeEA(mode,reg,disp,idx,lit);
+      let html = `<div><strong>Result</strong></div><div style="margin-top:6px">${out.description}</div>`;
+      if(out.ea!==null) html += `<div style="margin-top:8px">EA = <span class="big">${toHex32(out.ea)}</span></div>`;
+      if(out.value!==null) html += `<div style="margin-top:8px">Read value (aligned size depends on mode) = <span class="big">${toHex32(out.value)}</span></div>`;
+      document.getElementById('eaOutput').innerHTML = html;
+    };
+
+    document.getElementById('dumpMem').onclick = ()=>{
+      parseRegs(); let keys = Object.keys(state.mem).map(k=>parseInt(k)).sort((a,b)=>a-b); if(keys.length===0){ alert('No memory bytes defined. Edit the Memory textarea on the left and Apply.'); return; }
+      let html = '<pre class="snippet">'; keys.forEach(a=>{ const b=state.mem[a]; html += toHex32(a).slice(-4)+': '+('00'+b.toString(16)).slice(-2).toUpperCase() + '\n'; }); html += '</pre>'; document.getElementById('eaOutput').innerHTML = '<strong>Memory dump</strong>'+html;
+    };
+
+    document.getElementById('loadExamples').onclick = ()=>{ // load sample data for selected mode
+      const m = modes[selected];
+      // quick presets per mode
+      const presets = {
+        'Dn': ()=>{ document.getElementById('D0').value='00000010'; document.getElementById('D1').value='00000000'; document.getElementById('memory').value=''; },
+        'An': ()=>{ document.getElementById('A0').value='00001000'; document.getElementById('memory').value='1000: 12 34 56 78'; },
+        '(An)': ()=>{ document.getElementById('A0').value='00001004'; document.getElementById('memory').value='1004: AA BB CC DD'; },
+        '(An)+': ()=>{ document.getElementById('A0').value='00001004'; document.getElementById('memory').value='1004: 12 34 56 78'; },
+        '-(An)': ()=>{ document.getElementById('A0').value='00001008'; document.getElementById('memory').value='00001004: 11 22 33 44'; },
+        '(d16,An)': ()=>{ document.getElementById('A0').value='00001000'; document.getElementById('memory').value='0010: 12 34 56 78\n0014: AA BB CC DD'; document.getElementById('calcDisp').value='0010'; },
+        '(d8,An,Xn)': ()=>{ document.getElementById('A0').value='00001000'; document.getElementById('D1').value='00000005'; document.getElementById('memory').value='1005: 11 22 33 44'; document.getElementById('calcDisp').value='05'; document.getElementById('calcIndex').value='D1.W'; },
+        'ABS.W': ()=>{ document.getElementById('memory').value='1000: AA BB CC DD'; document.getElementById('calcLiteral').value='1000'; },
+        'ABS.L': ()=>{ document.getElementById('memory').value='00001000: 12 34 56 78'; document.getElementById('calcLiteral').value='00001000'; },
+        '(d16,PC)': ()=>{ document.getElementById('PC').value='00001000'; document.getElementById('memory').value='001020: DE AD BE EF\n00001020: 11 22 33 44'; document.getElementById('calcDisp').value='0020'; },
+        '(d8,PC,Xn)': ()=>{ document.getElementById('PC').value='00001000'; document.getElementById('D0').value='00000004'; document.getElementById('memory').value='00001004: 12 34 56 78'; document.getElementById('calcDisp').value='04'; document.getElementById('calcIndex').value='D0.W'; },
+        '#imm': ()=>{ document.getElementById('calcLiteral').value='1234'; document.getElementById('memory').value=''; }
+      };
+      if(presets[m.id]) presets[m.id](); parseRegs(); alert('Loaded example data for '+m.title);
+    };
+
+  </script>
+</body>
+</html>

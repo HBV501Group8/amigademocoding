@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="./styles/containerCode.css">
+</head>
+<body>
+    <h1>Example: Blitter coding</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+      🔹 What is the Blitter?
+
+      The Blitter (short for Block Image Transfer) is a dedicated piece of hardware inside the Amiga’s Agnus chip. Its main job is to move and manipulate blocks of memory (usually graphics data such as pixels) extremely quickly, without needing the CPU to do all the work.
+
+      Think of it as a hardware-accelerated copy-and-draw engine that operates in parallel with 
+      the Motorola 68000 CPU.
+</p>
+</div>
+    <div class="textout">
+      <p>
+      One of the simplest tasks is clearing the screen with the Blitter.
+      We need to introduce some new registers.
+    </p>
+    <p>
+      First there are the source registers. There are three of them, representing the A, B, and C channels. There is one destination register called D, which holds the output. The source registers can be combined in many ways (there are a total of 255 possibilities).
+      The source registers are BLTAPT, BLTBPT, and BLTCPT, and the destination register is BLTDPT.
+      There are also modulo registers for each source and destination register. These are BLTAMOD, BLTBMOD, BLTCMOD, and BLTDMOD. These modulo registers are used when working with a portion of screen graphics in conjunction with the size of the blit operation.
+   </p>
+   <p>
+      There are also Blitter control registers called BLTCON0 and BLTCON1.
+      BLTCON0.
+   </p>
+   <h1>Amiga BLTCON0 Register Cheat Sheet</h1>
+<p>The <strong>BLTCON0</strong> register (at <code>$DFF040</code>) controls the Amiga’s blitter logic operation, source selection, and source A shifting. It is 16 bits wide.</p>
+
+
+<h2>Bit Layout</h2>
+<pre>
+Bit: 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+LF8 LF7 LF6 LF5 LF4 LF3 LF2 LF1 LF0 AUL SUL - ASH4 ASH3 ASH2 ASH1 ASH0
+</pre>
+
+
+<h2>Bit Fields</h2>
+<table>
+<tr><th>Bits</th><th>Name</th><th>Description</th></tr>
+<tr><td>15–8</td><td><strong>LF8–LF1</strong></td><td>Logical Function select (8 bits). Defines one of 256 boolean operations on sources A, B, C → D.</td></tr>
+<tr><td>7</td><td><strong>AUL</strong></td><td>Use Source A Upper. Controls whether source A participates in the function.</td></tr>
+<tr><td>6</td><td><strong>SUL</strong></td><td>Use Source Shift. Enables interaction with BLTCON1 shift settings.</td></tr>
+<tr><td>5</td><td><em>Reserved</em></td><td>Not used (leave 0).</td></tr>
+<tr><td>4–0</td><td><strong>ASH4–ASH0</strong></td><td>Source A shift (0–15 bits). Allows aligning source A pixels horizontally.</td></tr>
+</table>
+
+
+<h2>Usage</h2>
+<p><strong>Boolean function field (LF)</strong>: defines how A, B, C are combined. For example:</p>
+<ul>
+<li><code>0xF0</code> → Output = A</li>
+<li><code>0xCC</code> → Output = B</li>
+<li><code>0xAA</code> → Output = C</li>
+<li><code>0xCA</code> → Output = (A AND B) OR (C AND ~B) — common for masked sprites</li>
+</ul>
+
+
+<h2>Example: Masked Sprite</h2>
+<p>Registers configured as:</p>
+<ul>
+<li><code>BLTCON0 = 0x0FCA</code></li>
+<li>Source A = sprite bitmap</li>
+<li>Source B = mask</li>
+<li>Source C = background</li>
+<li>Destination D = output playfield</li>
+</ul>
+<p>Operation: <code>D = (A AND B) OR (C AND ~B)</code></p>
+<p>This clears a hole in the background and inserts the sprite pixels.</p>
+
+
+<h2>Notes</h2>
+<p class="note">BLTCON0 pairs with <code>BLTCON1</code>, which controls source B shifting, line drawing, and area fill options.</p>
+
+
+<footer>
+This BLTCON0 reference is based on the Amiga OCS/ECS chipset. AGA adds some extensions but the basics remain the same.
+</footer>
+</div>
+<h1>Amiga BLTCON1 Register Cheat Sheet</h1>
+<p>The <strong>BLTCON1</strong> register (at <code>$DFF042</code>) is used together with <code>BLTCON0</code> to control the blitter's source B shifting and special drawing modes such as line drawing and fill operations.</p>
+
+
+<h2>Bit Layout</h2>
+<pre>
+Bit: 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+LF8 LF7 LF6 LF5 LF4 LF3 LF2 LF1 LF0 SUL FCI DESC LINE SING BSH4 BSH3 BSH2 BSH1 BSH0
+</pre>
+
+
+<h2>Bit Fields</h2>
+<table>
+<tr><th>Bits</th><th>Name</th><th>Description</th></tr>
+<tr><td>15–8</td><td><strong>LF8–LF1</strong></td><td>Logical Function (mirror of BLTCON0). Defines boolean operation on A, B, C → D.</td></tr>
+<tr><td>7</td><td><strong>SUL</strong></td><td>Enable shift for source B.</td></tr>
+<tr><td>6</td><td><strong>FCI</strong></td><td>Fill Carry In. Initial carry for area fill operations.</td></tr>
+<tr><td>5</td><td><strong>DESC</strong></td><td>Descending mode. Controls memory addressing direction.</td></tr>
+<tr><td>4</td><td><strong>LINE</strong></td><td>Line drawing mode enable (Bresenham algorithm).</td></tr>
+<tr><td>3</td><td><strong>SING</strong></td><td>Single-bit mask for line width (thin line if set).</td></tr>
+<tr><td>2–0</td><td><strong>BSH2–BSH0</strong></td><td>Source B shift (0–7). Aligns B horizontally before logic operation.</td></tr>
+</table>
+
+
+<h2>Usage</h2>
+<p><strong>Source B shift:</strong> Controls horizontal alignment of B, often used for masked sprite drawing.</p>
+<p><strong>Line mode:</strong> Set <code>LINE=1</code> and use BLTCON0 to combine pixels. The blitter draws straight lines between coordinates automatically.</p>
+<p><strong>Fill mode:</strong> Use <code>FCI</code> to start fill operations; the blitter fills enclosed areas efficiently.</p>
+
+
+<h2>Example: Line Drawing</h2>
+<ul>
+<li><code>BLTCON1 = 0x0010</code> (LINE=1 enabled)</li>
+<li><code>BLTCON0</code> = OR function to plot pixels</li>
+<li>Result: hardware draws straight lines between points.</li>
+</ul>
+
+
+<footer>
+This BLTCON1 reference applies to the Amiga OCS/ECS chipset. AGA adds some enhancements, but usage remains similar.
+</footer>
+
+<h1>Amiga BLTSIZE Register Cheat Sheet</h1>
+<p>The <strong>BLTSIZE</strong> register (at <code>$DFF056</code>) specifies the size of the block to be processed by the Amiga blitter in terms of width and height.</p>
+
+
+<h2>Bit Layout</h2>
+<pre>
+Bit: 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+Y9 Y8 Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 X7 X6 X5 X4 X3 X2 X1 X0
+</pre>
+
+
+<h2>Field Description</h2>
+<table>
+<tr><th>Bits</th><th>Name</th><th>Description</th></tr>
+<tr><td>15–8</td><td><strong>Y9–Y0</strong></td><td>Height of the block in lines minus one (0–1023). Hardware adds 1 automatically.</td></tr>
+<tr><td>7–0</td><td><strong>X7–X0</strong></td><td>Width of the block in words minus one (0–255). Each word = 16 pixels. Hardware adds 1 automatically.</td></tr>
+</table>
+
+
+<h2>Usage</h2>
+<p>BLTSIZE tells the blitter how many words (X) per line and how many lines (Y) to process. Example:</p>
+<ul>
+<li>Copy a 16×16 pixel block → X = 0 (1 word), Y = 0 (1 line)</li>
+<li>Copy a 32×32 pixel block → X = 1 (2 words), Y = 1 (2 lines)</li>
+</ul>
+
+
+<h2>Notes</h2>
+<ul>
+<li>The actual size is <code>(X+1)</code> words × <code>(Y+1)</code> lines.</li>
+<li>Height can go up to 1024 lines and width up to 256 words (4096 pixels).</li>
+<li>Always set BLTSIZE last, after pointers and BLTCON0/1 are configured, to trigger the blitter operation.</li>
+</ul>
+
+
+<footer>
+This BLTSIZE reference is for the Amiga OCS/ECS chipset. AGA supports similar addressing but can handle larger pixel widths in enhanced modes.
+</footer>
+
+<p>
+  Now let's do a simple clearscreen with the blitter. 
+  It would be something like this
+  To ensure the blitter is ready we must check a bit in DMACONR
+</p>
+ 
+ <pre>
+ WtB  :	BTST    #14,DMACONR		Wait for Blit to End 
+      	BNE.S   WtB
+
+        move.l #screen ,BLTDPT ; Set the destiantion channel to screen mem
+        move.w #0,BLTDMOD      ; no modulo use all screen wdoth
+        move.w #$0100, BLTCON0 ; Only use channel D
+        ; The BLTSIZE register executes the blit
+        move.w	#ScreenHeight*64+(ScreenWidth/2),BLTSIZE ; the size is in words(16 bit)
+ </pre> 
+<div class="textout">
+  <p>
+      Another example is copying from source to destination.
+      Here we need a source register. I choose BLTAPT as the source.
+
+      We also need to adjust the logic in BLTCON0 for a copy operation.
+      We set BLTCON0 to #$09F0. The $09 selects the A channel (and related configuration), and $F0 defines the minterm for a copy operation.  </p>
+  <p>
+    Now we are only working with single bitplane in this code
+  </p>
+  <pre>
+ WtB  :	BTST    #14,DMACONR		Wait for Blit to End 
+      	BNE.S   WtB
+
+        move.l  #Source,BLTAPT    ;point to source memory
+        move.l  #Dest,BLTDPT      ;point to destiantion memeory
+        move.w	#0,BLTAMOD        ; no modulo for source 
+      	move.w	#0,BLTDMOD        ; no modulo for destination
+        move.l	#$ffffffff,BLTAFWM      ;Those set both channel A and Channel D to -1
+                                        ; usually this is what we use
+      	move.l	#$09f00000,BLTCON0      ; Here we write to BLTCON0 and BLTCON1 at Once
+        move.w	#ScreenHeight*64+(ScreenWidth/2),BLTSIZE ; the size is in words(16 bit)        
+
+Source:  blk.w 100 ; memory for A channel
+Dest:    blk.w 100 ; memory for D channel
+    
+  </pre>
+</div> 
+
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

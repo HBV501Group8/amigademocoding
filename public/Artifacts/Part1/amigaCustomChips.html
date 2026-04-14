@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Amiga OCS/ECS — Custom Chips (Agnus · Denise · Paula)</title>
+  <link rel="stylesheet" href="../../static/customchips.css">
+ </head>
+<body>
+  <div class="wrap">
+    <main class="card explain">
+      <header>
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#073b59,#0d688f);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff">Amiga</div>
+        <div>
+          <h1>Amiga OCS / ECS — Custom Chips</h1>
+          <p>Simple visual explanation of Agnus, Denise and Paula and how they connect the CPU to screen and sound.</p>
+        </div>
+      </header>
+
+      <section>
+        <h2>At a glance</h2>
+        <div class="chips">
+          <div class="chip"><b>Agnus</b><div class="muted">Address generator — memory arbiter & copper</div></div>
+          <div class="chip"><b>Denise</b><div class="muted">Video — bitplanes, sprites, playfields</div></div>
+          <div class="chip"><b>Paula</b><div class="muted">Audio & I/O — 4 PCM channels, disk, ports</div></div>
+        </div>
+
+        <h2>How data flows</h2>
+        <ul>
+          <li><b>CPU</b> requests memory and instructs the chips.</li>
+          <li><b>Agnus</b> controls access to chip RAM and runs the <i>copper</i> co-processor to change display timing/regs mid-frame.</li>
+          <li><b>Denise</b> reads bitplane memory (provided by Agnus) and composes the final video output (bitplanes + sprites).</li>
+          <li><b>Paula</b> reads audio samples and manages disk/serial I/O.</li>
+        </ul>
+
+        <h2>OCS vs ECS — short</h2>
+        <p class="muted">OCS is the original set (Amiga 1000/500/2000). ECS adds higher-resolution modes and some improved timings (Amiga 500+, 3000).</p>
+
+        <h2>Quick tips / interesting bits</h2>
+        <ul>
+          <li><b>Copper</b> is a tiny co-processor inside Agnus that can change hardware registers on specific scanlines for effects like split-screen, gradients and synced sprites.</li>
+          <li><b>Bitplanes</b> store the image in planar form — more planes = more colors, but the same horizontal resolution.</li>
+          <li><b>Sprites</b> are hardware objects Denise can overlay with priority control — cheap and fast for games.</li>
+        </ul>
+      </section>
+
+      <p class="note">Tip: open the controls on the right to highlight parts of the diagram or toggle the OCS/ECS note.</p>
+    </main>
+
+    <aside class="card visual">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Diagram</strong>
+        <div class="legend">
+          <button id="btnCopper">Copper</button>
+          <button id="btnAudio">Audio channels</button>
+          <button id="btnOCS" class="active">Show OCS/ECS note</button>
+        </div>
+      </div>
+
+      <div class="imageWrap" id="imageWrap">
+        <!-- Replace the src below with the actual image file name if needed. Save the generated PNG next to this HTML as "diagram.png" -->
+        <img id="diagram" src="diagram.png" alt="Amiga custom chips diagram" />
+      </div>
+
+      <div id="extra" class="card" style="padding:12px">
+        <div id="copperInfo" style="display:none">
+          <b>Copper</b>
+          <p class="muted">Runs during the beam's drawing and can change registers mid-frame — used for split screens and palette tricks.</p>
+        </div>
+        <div id="audioInfo" style="display:none">
+          <b>Audio channels</b>
+          <p class="muted">Paula provides 4 independent PCM channels. Games mix effects and music using them directly.</p>
+        </div>
+        <div id="ocsInfo">
+          <b>OCS vs ECS</b>
+          <p class="muted">ECS adds an extra video mode and some timing improvements, but the architecture (Agnus/Denise/Paula) stays the same.</p>
+        </div>
+      </div>
+
+      <div class="note">If the image doesn't show: save the diagram PNG next to this HTML as <code>diagram.png</code> (or edit the &lt;img&gt; src to point to the file produced earlier).</div>
+    </aside>
+  </div>
+
+  <script>
+    // Controls
+    const btnCopper = document.getElementById('btnCopper');
+    const btnAudio = document.getElementById('btnAudio');
+    const btnOCS = document.getElementById('btnOCS');
+    const copperInfo = document.getElementById('copperInfo');
+    const audioInfo = document.getElementById('audioInfo');
+    const ocsInfo = document.getElementById('ocsInfo');
+
+    btnCopper.addEventListener('click', ()=>{
+      const on = copperInfo.style.display === 'none';
+      copperInfo.style.display = on? 'block':'none';
+      btnCopper.classList.toggle('active', on);
+    });
+
+    btnAudio.addEventListener('click', ()=>{
+      const on = audioInfo.style.display === 'none';
+      audioInfo.style.display = on? 'block':'none';
+      btnAudio.classList.toggle('active', on);
+    });
+
+    btnOCS.addEventListener('click', ()=>{
+      const on = ocsInfo.style.display !== 'none';
+      ocsInfo.style.display = on? 'none':'block';
+      btnOCS.classList.toggle('active', !on);
+    });
+
+    // Small UX: try to load the embedded filename that may exist in the environment
+    const img = document.getElementById('diagram');
+    // If the default relative image fails to load, show a lightweight SVG fallback drawn on-the-fly
+    img.addEventListener('error', ()=>{
+      const svg = `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns='http://www.w3.org/2000/svg' width='720' height='420'>
+          <rect width='100%' height='100%' fill='#071220' rx='8'/>
+          <g font-family='Arial' fill='#e6eef6' font-size='14'>
+            <rect x='38' y='34' width='120' height='70' rx='8' fill='#ffd873' />
+            <text x='98' y='75' text-anchor='middle' fill='#071220' font-weight='700'>CPU</text>
+            <rect x='200' y='20' width='260' height='140' rx='10' fill='#6fb7ff'/>
+            <text x='330' y='48' font-weight='700' font-size='16' text-anchor='middle'>DENISE</text>
+            <rect x='200' y='170' width='260' height='110' rx='10' fill='#f6a15a'/>
+            <text x='330' y='200' font-weight='700' font-size='16' text-anchor='middle'>PAULA</text>
+            <path d='M158 68 L200 68' stroke='#9aa4b2' stroke-width='6' stroke-linecap='round'/>
+            <path d='M158 200 L200 200' stroke='#9aa4b2' stroke-width='6' stroke-linecap='round'/>
+          </g>
+        </svg>`)}
+      `;
+      img.src = svg;
+    });
+  </script>
+</body>
+</html>

@@ -8,9 +8,9 @@
     "lint": "npm run lint:js && npm run lint:css",
     "format": "prettier \"**/*.{js,jsx,ts,tsx}\" --write",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
     "start": "node dist/src/index.js",
-    "deploy": "wrangler deploy"
+    "build": "tsc",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
@@ -21,11 +21,13 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260413.1",
     "@eslint/js": "^10.0.1",
     "@types/node": "^20.11.17",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
     "bcryptjs": "^3.0.3",
+    "cpx": "^1.5.0",
     "eslint": "^10.2.0",
     "prettier": "^3.8.2",
     "stylelint": "^17.6.0",

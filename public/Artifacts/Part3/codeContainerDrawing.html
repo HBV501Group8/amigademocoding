@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="../../static/codeContainer.css">  </style>
+</head>
+<body>
+  <h1>Example Line drawing 3d Cube.</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+       How can we draw a 3D cube?
+	   This is where projection of 3D coordinates comes into play. 
+	   In order to draw a wireframe cube, we can see that 8 vertices are needed,
+	   along with a table that defines how each vertex is connected.
+
+		Let’s say we have 8 3D coordinates (X, Y, and Z for each) around the center of the screen. 
+		We could have something like:
+      </p>
+        <pre>
+
+cube
+    dc.w	8	   ; nr of vertices
+    dc.w    -100,100,-100    ; v0			
+    dc.w     100,100, -100    ; v100
+    dc.w     100,-100,-100    ; v2
+    dc.w    -100,-100,-100    ; v3
+    dc.w    -100,100,100    ; v4
+    dc.w     100,100,100    ; v5
+    dc.w     100,-100,100    ; v6
+    dc.w    -100,-100,100    ; v7
+
+        </pre>
+<p>
+    As we remember, we have to convert those 3D vertices into 
+	2D screen vertices by dividing X and Y by Z, and then adding the screen center.
+</p>
+
+    <pre>
+***********************
+* Do projection	      *
+***********************	
+Projection
+
+	lea cube,a0             Address of vube vertices
+	lea	projectcoords,a1    Ouput 2d verticces
+	move.w	#8,d7           NR OF VERTICES IN Cube
+	subq	#1,d7
+
+
+project
+	move.w	(a0)+,d0  ; x
+	move.w	(a0)+,d1  ; y
+	move.w	(a0)+,d2  ; z
+	asr.w	#6,d2     ;scale distance
+	tst.w	d2
+	bne	noresz
+	move.w	#1,d2
+noresz
+	ext.l	d0			Extend to longword
+	ext.l	d1			------------------
+	asl.l	#8,d0			Multiply with 256
+	asl.l	#8,d1			Multiply with 256
+	divs	d2,d0			x/z
+	divs	d2,d1			y/z
+	add.w	#160,d0         add center of screen x
+	add.w	#135,d1         add center of screen y
+	move.w	d0,(a1)+        store x
+	move.w	d1,(a1)+        store y
+	dbra	d7,project	
+	rts
+
+    </pre>
+
+<p>
+    Now we have proejected the vertices to screen coordinates
+    How can we draw the wireframe cube?
+    Well we have a table
+</p>
+<pre>
+    Vectors	
+    dc.w		6               Nr of faces for cube it is 6 faces ot Quads
+            
+	dc.w	4,1,0,1,2,3,0   4 = Quads 1 = color, 0,1,2,3,0 conect points for faces
+	dc.w	4,2,1,5,6,2,1
+	dc.w	4,3,4,7,6,5,4
+	dc.w	4,4,0,3,7,4,0
+	dc.w	4,3,2,6,7,3,2
+	dc.w	4,2,0,4,5,1,0
+
+</pre>
+       <p>
+			Here is the drawing routine that connects lines in quads, 
+			so we must render 6 quads for a cube, using a vectors table and 
+			vertices as offsets. I don’t expect you to understand it completely, but it is usable.       </p>
+       <pre>
+**************************************
+* This is the actual drawing routine *
+* Can handle up to 3 bitplanes       *
+*************************************
+
+draw
+	lea	vectors,a2          ;get address of vectors tabke
+	lea	projectcoords,a1    ;Projected cooords
+*	lea	rotcoords,a3
+	move.w	(a2)+,d7        ; first entry is number of faces (6)
+	subq	#1,d7           : -1 for dbra
+	clr.w	facecnt         ; init facecounter
+plot
+	move.w	(a2)+,d6        ; element one is number of opints in the polygon
+	move.w	d6,nrpts        ; store it
+	subq	#1,d6
+	move.w	(a2)+,color	    ; color of plane
+	add.w	#1,facecnt      ; what face are we working with
+	clr.w	init
+	move.w	color,d3        ; store color
+facloop
+	tst.w	init
+	bne	go
+                            ; first line 
+	move.w	(a2)+,d5        ; Get vector for offset in ace table
+	lsl.w	#2,d5           : extent to word
+	move.w	(a1,d5),d0      ; line x1
+	move.w	2(a1,d5),d1     ; line y1
+	bra	notgo
+go
+	move.w	savex,d0
+	move.w	savey,d1
+notgo
+	move.w	#1,init
+	move.w	(a2)+,d5        ; get next offset in vector table
+	lsl.w	#2,d5           ;extent to word
+	move.w	(a1,d5),d2      ;line x2
+	move.w	2(a1,d5),d3     ;line y2
+	move.w	d2,savex        ;save x2 for later
+	move.w	d3,savey        ; save y2 for later
+	move.l	wscr,a0         ; Get screen address
+	move.w	#40,d4          ; screenwidth
+	jsr    Drawline         ; call draw line with prams x1,y1 x2,y2 screen in a0
+                            ; screenwidth in d4
+
+    move.w	savex,d0        ; save x2 for later
+	move.w	savey,d1        ; save y for later
+	dbra	d6,facloop      ; finish each quad
+	dbra	d7,plot
+	rts
+
+       </pre>
+
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

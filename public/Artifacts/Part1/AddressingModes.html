@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M68000 Addressing Modes Reference</title>
+  <link rel="stylesheet" href="../../static/Addressingmodes.css">
+</head>
+<body>
+  <h1>M68000 Addressing Modes</h1>
+  <p class="desc">The Motorola 68000 supports a wide range of addressing modes. Below is a categorized reference with syntax and examples.</p>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">1. Data Register Direct</h2>
+    <p><code>D0</code> ... <code>D7</code></p>
+    <p class="desc">Operand is in a data register.</p>
+    <p><b>Example:</b> <code>MOVE D0, D1</code> (copy contents of D0 into D1)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">2. Address Register Direct</h2>
+    <p><code>A0</code> ... <code>A7</code></p>
+    <p class="desc">Operand is in an address register (cannot be used for byte-sized data).</p>
+    <p><b>Example:</b> <code>MOVEA.L D0, A1</code> (move longword from D0 into A1)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">3. Address Register Indirect</h2>
+    <p><code>(An)</code></p>
+    <p class="desc">The address register holds the effective address of the operand in memory.</p>
+    <p><b>Example:</b> <code>MOVE (A0), D0</code> (load value from memory at A0 into D0)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">4. Address Register Indirect with Post-increment</h2>
+    <p><code>(An)+</code></p>
+    <p class="desc">Use the address in An, then increment An (by operand size).</p>
+    <p><b>Example:</b> <code>MOVE (A0)+, D0</code> (copy value at A0 into D0, then increment A0)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">5. Address Register Indirect with Pre-decrement</h2>
+    <p><code>-(An)</code></p>
+    <p class="desc">Decrement An (by operand size), then use it as address.</p>
+    <p><b>Example:</b> <code>MOVE D0, -(A7)</code> (push D0 onto stack using A7)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">6. Address Register Indirect with Displacement</h2>
+    <p><code>(d16,An)</code></p>
+    <p class="desc">Effective address = An + 16-bit signed displacement.</p>
+    <p><b>Example:</b> <code>MOVE (12,A0), D0</code> (copy from address A0+12 into D0)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">7. Address Register Indirect with Index</h2>
+    <p><code>(d8,An,Xn)</code></p>
+    <p class="desc">Effective address = An + sign-extended 8-bit displacement + index register (Xn = Dn or An, scaled).</p>
+    <p><b>Example:</b> <code>MOVE (4,A0,D1), D0</code> (copy from [A0 + 4 + D1] into D0)</p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">8. Absolute Short</h2>
+    <p><code>(xxx).W</code></p>
+    <p class="desc">16-bit absolute address (sign-extended).</p>
+    <p><b>Example:</b> <code>MOVE ($1234).W, D0</code></p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">9. Absolute Long</h2>
+    <p><code>(xxx).L</code></p>
+    <p class="desc">32-bit absolute address.</p>
+    <p><b>Example:</b> <code>MOVE ($00123456).L, D0</code></p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">10. Program Counter with Displacement</h2>
+    <p><code>(d16,PC)</code></p>
+    <p class="desc">Effective address = PC + 16-bit displacement.</p>
+    <p><b>Example:</b> <code>MOVE (12,PC), D0</code></p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">11. Program Counter with Index</h2>
+    <p><code>(d8,PC,Xn)</code></p>
+    <p class="desc">Effective address = PC + 8-bit displacement + index register.</p>
+    <p><b>Example:</b> <code>MOVE (4,PC,D1), D0</code></p>
+  </div>
+
+  <div class="section">
+    <h2 onclick="toggle(this)">12. Immediate</h2>
+    <p><code>#data</code></p>
+    <p class="desc">The operand is a constant value encoded in the instruction.</p>
+    <p><b>Example:</b> <code>MOVE #10, D0</code></p>
+  </div>
+
+  <p class="desc" style="margin-top:20px;">💡 Tip: Address register indirect modes with pre-decrement/post-increment are especially useful for stack operations.</p>
+
+  <script>
+    function toggle(el){
+      let pTags = el.parentNode.querySelectorAll('p');
+      pTags.forEach((p,i)=>{
+        if(i>0) p.classList.toggle('hidden');
+      });
+    }
+  </script>
+</body>
+</html>

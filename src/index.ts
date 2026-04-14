@@ -4,10 +4,14 @@ import Login from './views/login.js';
 import Registration from './views/Registration.js';
 import creditCard from './views/creditcard..js';
 import { setCookie, getCookie } from 'hono/cookie';
-import { db } from '../db.js';
+//import { db } from '../db.js';
 
-const app = new Hono();
+type Bindings = {
+  DB: D1Database
+  ASSETS: Fetcher
+}
 
+const app = new Hono<{ Bindings: Bindings }>()
 /**
  * 🔐 Login user
  * @route POST /api/login
@@ -20,10 +24,11 @@ app.post('/api/login', async (c) => {
   const email = body.email;
   const password = body.password;
 
-  const lessons = db
+  const lessons = c.env.DB
     .prepare('SELECT * FROM Users WHERE Email = ? AND Password = ?')
-    .all(email + '', password + '');
-  if (lessons.length > 0) {
+    .bind(email, password)
+    .first();
+  if (lessons) {
     setCookie(c, 'email', email + '');
     return c.redirect('/');
   } else {
@@ -32,6 +37,13 @@ app.post('/api/login', async (c) => {
   }
 });
 
+app.get('/test-db', async (c) => {
+  const result = await c.env.DB
+    .prepare('SELECT 1 as test')
+    .first()
+
+  return c.json(result)
+})
 /**
  * 📝 Register new user
  * @route POST /api/register
@@ -55,9 +67,10 @@ app.post('/api/register', async (c) => {
     return c.json({ error: 'Passwords do not match' }, 400);
   }
 
-     db
+     c.env.DB
     .prepare('INSERT INTO Users (Name,Email,Password) VALUES(?, ?, ?)')
-    .run([name, email, password]);
+    .run.bind(name,email, password)
+    .first();
 
   /**
    * ⚠️ NOTE: BUG HERE
@@ -104,12 +117,21 @@ app.get('/set3', (c) => {
  * - user
  * - email
  */
-app.get('/', (c) => {
+app.get ('/', async(c) => {
   const userEmail = getCookie(c, 'email');
   console.log('User email from cookie:', userEmail);
 
   const user = getCookie(c, 'user');
-  return c.html(Main(user, userEmail));
+
+  const lessons = await c.env.DB
+  .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
+  .bind(user)
+  .all();
+
+console.log('Lessons from DB:', lessons.results);
+
+return c.html(Main(user, userEmail, lessons.results));
+    
 });
 
 /**
@@ -134,81 +156,7 @@ app.get('/creditcard', (c) => {
   return c.html(creditCard());
 });
 
-app.get('*', serveStatic({ root: './src/static' }));
-app.get('*', serveStatic({ root: './Video' }));
-app.get('*', serveStatic({ root: './images' }));
-app.get('*', serveStatic({ root: './src/views/artifacts/part1' }));
-app.get('*', serveStatic({ root: './src/views/artifacts/part2' }));
-app.get('*', serveStatic({ root: './src/views/artifacts/part3' }));
-app.get('*', serveStatic({ root: './src/views/artifacts/part2/styles' }));
-app.get('*', serveStatic({ root: './ADF' }));
-/**
- * 📦 Download file: ASM-One.adf
- */
-app.get(
-  '/download',
-  serveStatic({
-    path: './ADF/ASM-One.adf',
-    onFound: (_path, c) => {
-      c.header('Content-Disposition', 'attachment; filename="ASM-One.adf"');
-    },
-  })
-);
-
-/**
- * 📦 Download file: CourseSources.adf
- */
-app.get(
-  '/downloadsource',
-  serveStatic({
-    path: './ADF/CourseSources.adf',
-    onFound: (_path, c) => {
-      c.header(
-        'Content-Disposition',
-        'attachment; filename="CourseSources.adf"'
-      );
-    },
-  })
-);
-
-/**
- * 📦 Download file: coursescroll.adf
- */
-app.get(
-  '/downloadsource2',
-  serveStatic({
-    path: './ADF/coursescroll.adf',
-    onFound: (_path, c) => {
-      c.header(
-        'Content-Disposition',
-        'attachment; filename="coursescroll.adf"'
-      );
-    },
-  })
-);
-
-/**
- * 📦 Download file: DemoSrc.adf
- */
-app.get(
-  '/downloadsource3',
-  serveStatic({
-    path: './ADF/DemoSrc.adf',
-    onFound: (_path, c) => {
-      c.header('Content-Disposition', 'attachment; filename="DemoSrc.adf"');
-    },
-  })
-);
-
-/**
- * 🚀 Start server
- */
-// serve(
-//   {
-//     fetch: app.fetch,
-//     port: 3000,
-//   },
-//   (info) => {
-//     console.log(`Server is running on http://localhost:${info.port}`);
-//   }
-//);
+app.get('*', (c) => {
+  return c.env.ASSETS.fetch(c.req.raw);
+})
+export default app

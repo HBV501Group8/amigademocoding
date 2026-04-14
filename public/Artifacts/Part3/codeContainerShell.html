@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="../../static/codeContainer.css">  </style>
+</head>
+<body>
+  <h1>Example Adding demo script handler</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+            When we are coding demos on the Amiga, we want to have control 
+			over when routines are executed, possibly based on time.
+    </p>
+    <p>
+        Here is simple Demo Script handler that has the following format
+    </p>
+        <pre>
+
+Script
+
+		dc.l TimeStart, TimeEnd, setup for this segment, number of routines, pointer to each routine
+		
+		example 
+		
+		dc.l 50*0, 50*10,setupdummy, 3, clearScreen, BlitBob, Stars3D
+	</pre>
+
+<p>
+    Here is a complete shell with scripting
+</p>
+<pre>
+*************************************
+* Here are all the hardware equates *
+*************************************
+	incdir work:assembler/
+	include hardwareequates.s
+**********************************
+* Exec base and structure offset *
+**********************************
+
+
+***************************
+* These are the cia-names *
+***************************
+CIAASDR		equ	$bfec01
+CIAAICR		equ	$bfed01
+CIAACRA		equ	$bfee01
+
+**********************
+* Control characters *
+**********************
+lf		equ	$09
+
+**************************
+* Screen display equates *
+**************************
+ScreenHeight	equ	256
+ScreenWidth	equ	320/8
+ScreenDepth	equ	4
+ScreenMemory	equ	ScreenHeight*ScreenWidth*ScreenDepth
+
+*******************************************
+* Here is where the actual program begins *
+*******************************************
+
+
+
+	movea.l	$4,a5		Get execbase for sys copper get
+	lea.l	Custom,a6		And hardware base also
+	bsr	KillInterrupts		Geuss what
+	bsr	SetDMA			And geuss again
+	bsr	SetCIA			Set the CIA chips
+	bsr	InitScreen		Set mine screen
+	jsr	makesphere
+lmb 	btst	#6,$bfe001		Test left mouse button
+	bne	lmb			Looped until pressed
+	bsr	RestoreScreen		Set system screen
+	bsr	ResCIA			Restore the CIA chips
+	bsr	RestoreDMA		Restore system dma
+	bsr	RestoreInterrupts	Restore system interupts
+	moveq.l	#0,d0			Signal dos : no error
+eq	rts				Quit program
+
+
+***************************************
+* This is my vertical blank interrupt *
+***************************************
+MyVBLI	
+	movem.l	d0-d7/a0-a6,-(sp)	Save regs
+	lea.l	Custom,a6
+*	move.w	#$fff,Color00(a6)
+	add.w	#1,framecnt
+
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	move.w	#ScreenDepth-1,d1
+	move.l	DScr(pc),d0	Get screen adress
+NextPlane
+	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap	d0
+	add.l	#ScreenWidth*screenheight,d0
+	addq.w	#8,a0
+	dbra	d1,NextPlane
+	clr.l	d0
+	clr.l	d1
+
+	lea	script2,a1
+	add.l	#4,a1
+	
+	move.w	taskoffset,d0
+	add.w	d0,a1
+	move.l	-4(a1),a0
+	jsr	(a0)
+
+	move.l	a1,a2
+	move.l	(a1),d3
+	mulu.w	#4,d3
+	add.w	#4,d3
+
+	
+	move.l	(a1,d3),d0
+	move.l	4(a1,d3),d1
+	move.w	framecnt,d2
+
+	cmp.w	d1,d2
+	bne	noadvance
+	move.l	d3,d4
+	add.w	#12,d4
+	add.w	d4,taskoffset
+noadvance
+	cmp.w	d0,d2
+	blt	outr
+skiproutine	
+	cmp.w	d1,d2
+	bgt	outr
+	move.l	(a1),d3
+	move.w	d3,nrrouts
+	move.w	#0,taskcnt
+	clr.l	d5
+routloop	
+	add.w	#1,taskcnt
+	move.l	a1,a2
+	move.l	a1,-(sp)
+	
+	add.w	#4,d5
+	add.w	d5,a2
+	move.w	d5,-(sp)
+	move.l	(a2),a0
+	jsr	(a0)
+	move.w	(sp)+,d5
+	move.w	taskcnt,d3
+	move.w	nrrouts,d4
+	move.l	(sp)+,a1
+	cmp.w	d3,d4
+	bne	routloop 
+outr
+
+
+	move.b	KeyDown(pc),d0
+	
+	lea.l	WScr(pc),a0
+	lea.l	DScr(pc),a1
+	move.l	(a0),d0
+	move.l	(a1),d1
+	move.l	d1,(a0)
+	move.l	d0,(a1)
+
+*	move.w	#$0000,color00(a6)
+
+	movem.l	(sp)+,d0-d7/a0-a6
+	move.w	#$0020,intreq+custom	Clear vbli request
+	rte
+
+
+
+
+nrrouts	dc.w	0
+taskcnt	dc.w	0
+taskoffset	dc.w 0	
+zadd	dc.w	0
+
+script2		
+
+ dc.l 50*0,50*21,,setupdummy,2,ClearScren,setBacgr1
+ dc.l 50*21,50*28,setupdummy,2,ClearScren,setBacgr2
+ *......................
+
+setupdummy
+	rts
+
+	
+
+
+KeyDown	dc.w	$0000
+framecnt	dc.w	0
+WScr	dc.l	Screen0
+DScr	dc.l	Screen1
+cnt2 dc.w 0
+
+
+
+wait
+	btst #14,dmaconr(a6)
+	bne wait
+	rts
+ClearScren
+	move.w	#screendepth-1,d7
+	move.l	WScr(pc),d0
+
+bplloop
+	jsr	blitterbusy
+	move.l	d0,bltdpth(a6)
+	move.w	#0,bltdmod(a6)
+	move.l	#$01000000,bltcon0(a6)
+	move.w	#250*64+(ScreenWidth/2),bltsize(a6)
+	add.l	#screenwidth*screenheight,d0
+	dbra	d7,bplloop
+	rts
+
+**************************
+* This is the keyboard   *
+* (and serial) interrupt *
+**************************
+KeyBInt	movem.l	d0/a0/a6,-(sp)
+	lea.l	Custom,a6		Get hardware custom base
+	move.w	#$0660,color00(a6)
+	move.b	CIAAICR,d0		d0 = interrupt control register
+	btst	#3,d0			A serial port interrrupt ?
+	beq.s	KeyBIntexit		If not, exit
+	moveq.l	#0,d0			Clear d0
+	move.b	CIAASDR,d0		Get serial data
+	ori.b	#%01000000,CIAACRA	Serial port is now output
+	move.b	#%11111111,CIAASDR	Send handshake
+	andi.b	#%10111111,CIAACRA	Serial port is now input
+	ror.b	#1,d0			Scroll up/down flag back
+	not.b	d0			Complemet key-code
+	btst	#7,d0			Is it an up-code
+	beq.s	KeyC1			Clear keydown flag and exit
+	clr.w	KeyDown
+	bra.s	KeyBIntExit
+KeyC1	cmp.b	#$40,d0
+	bgt.s	KeyBIntexit
+	lea.l	KBDTable,a0
+	move.b	(a0,d0.w),d0
+	move.b	d0,KeyDown
+KeyBIntExit
+	move.w	#$0000,color00(a6)
+	move.w	#$0008,Intreq(a6)
+	movem.l	(a7)+,d0/a0/a6
+	rte
+
+KBDTable
+	dc.b	" 1234567890-=\ 0sadrtyuiop[] "
+	dc.b	"XZCwqefghjkl;'  WQE xzcvbnm,./ "
+	dc.b	".SAD"          -"
+	even
+
+
+******************************************************
+* These subroutines take over the system copper list *
+* and set mine copperlist and then restore it again. *
+******************************************************
+InitScreen
+	move.l	156(a5),a1		Get gfx-library base
+	move.l	38(a1),SysCopper	Get system copper list
+	move.l	#CopperList,cop1lch(a6)	And set mine copper instead
+
+	move.l  #-1,bltafwm(a6)
+	move.l  #screen0,d0
+	move.l	d0,bltdpth(a6)
+	
+	move.w	#0,bltdmod(a6)	Modulo for screen clear
+	move.l  #$01000000,bltcon0(a6)
+	move.w  #ScreenHeight*64+ScreenWidth/2*ScreenDepth,bltsize(a6)
+
+Wblit2a1	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit2a1		If not wait
+	move.l  #-1,bltafwm(a6)
+	move.l  #screen1,d0
+	move.l	d0,bltdpth(a6)
+	
+	move.w	#0,bltdmod(a6)	Modulo for screen clear
+	move.l  #$01000000,bltcon0(a6)
+	move.w  #ScreenHeight*64+ScreenWidth/2*ScreenDepth,bltsize(a6)
+
+WBlit2a2	
+	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit2a2		If not wait
+
+
+	bra	noraster
+
+*	lea	raster,a0
+*	lea	colort0,a1
+	move.w	#180,d7
+	move.l	#$6001fffe,d0
+	move.w	#$0182,d1
+rasloopB
+	move.l	d0,(a0)+
+	add.l	#$01000000,d0
+	move.w	d1,(a0)+
+	move.w  (a1)+,(a0)+
+
+	dbra d7,rasloopB
+
+
+noraster
+	rts
+
+RestoreScreen
+	move.l	SysCopper,cop1lch(a6)	Restore system copperlist
+	rts
+
+SysCopper
+	dc.l	0
+
+*****************************************************
+* These little subroutines take over the interrupts *
+* and then restore them again to the system. Yeahh. *
+*****************************************************
+KillInterrupts
+	move.w	intenar(a6),SysIntenar		Get system inenta
+	move.w	intreqr(a6),SysIntreqr		Get system intreq
+	move.w	#$7fff,intreq(a6)		Clear system enable
+	move.w	#$7fff,intena(a6)		Clear system request
+	move.l	$6c,OldVBLI			Save system vbli
+	move.l	#MyVBLI,$6c			And set mine instead
+	move.w	#$8000+$4000+$20,intena(a6)	Allow vbli
+	rts
+
+RestoreInterrupts
+	move.l	OldVBLI(pc),$6c			Restore the system vbli
+	or.w	#$8000,SysIntenar		Set intena set bit
+	or.w	#$8000,SysIntreqr		Set intreq set bit
+	move.w	SysIntreqr(pc),intreq(a6)	Restore it
+	move.w	SysIntenar(pc),intena(a6)	Restore it
+	rts
+
+OldVBLI
+	dc.l	0
+SysIntenar
+	dc.w	0
+SysIntreqr
+	dc.w	0
+
+***********************************************************
+* This kills the system DMA and then sets my dma and when *
+* all that it is done it is capable of restoring it again *
+***********************************************************
+SetDMA	move.w	DMAconr(a6),d0		Fetch system dma status
+	move.w	d0,SystemDMA		Save system dma
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	#$83c0,DMAcon(a6)	Set COPEN+BPLEN+DMAEN+BLTEN
+	rts
+
+RestoreDMA
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	SystemDMA(pc),d0	Get old system dma
+	or.w	#$8000,d0		And set
+	move.w	d0,DMAcon(a6)		And now start it
+	rts
+
+SystemDMA
+	dc.w	0
+
+**********************************************
+* These routines take over the cia-ports and *
+* set up a keyboard handler.  Also restore.  *
+**********************************************
+SetCIA	move.l	$68,SysLevel2		Save system level 2 interrupt
+	move.l	#KeyBInt,$68		Set my keyboard interrupt
+	move.w	#$8008,Intena(a6)	Allow keyboard interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001000,CIAAICR	Start sp-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+ResCIA	move.l	SysLevel2,$68		Restore system level 2 interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001111,CIAAICR	Start sp/alrm/tb/ta-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+SysLevel2
+	dc.l	0
+*******************************
+* And the megalong copperlist *
+*******************************
+	Section	Copper,DATA_C
+
+
+CopperList
+	dc.w	$1001,$fffe
+
+BPLPointers
+	dc.w	bpl1pth,0	
+	dc.w	bpl1ptl,0
+	dc.w	bpl2pth,0	
+	dc.w	bpl2ptl,0
+	dc.w	bpl3pth,0	
+	dc.w	bpl3ptl,0
+	dc.w	bpl4pth,0	
+	dc.w	bpl4ptl,0
+	dc.w	bpl5pth,0	
+	dc.w	bpl5ptl,0
+	dc.w	bplcon0,ScreenDepth*$1000+$200
+	dc.w	bplcon1,0
+	dc.w	bplcon2,0
+	dc.w	bpl1mod,0
+	dc.w	bpl2mod,0
+	dc.w	diwstrt,$2981
+	dc.w	diwstop,$2ac1
+	dc.w	ddfstrt,$0038
+	dc.w	ddfstop,$00d0
+	
+
+
+	dc.w	$ffdf,$fffe
+	dc.w	$0511,$fffe
+	dc.w	$0180,$000
+	dc.w	$0611,$fffe
+	dc.w	$0180,$000
+
+
+	dc.l	$fffffffe
+
+
+BlitterBusy
+	btst	#14,$dff002		; whats the blitter upto?
+	bne	BlitterBusy		; Slaving away
+	rts				; Fuck-all
+
+
+	Section	Screen,data_c
+Screen0		DCB.B   screenmemory,0
+screen1		DCB.B   screenmemory,0
+
+
+
+
+	incdir 'work:assembler/'
+Sin	Incbin	Sin.r
+cos	Incbin	cos.r
+
+
+
+
+
+
+</pre>
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

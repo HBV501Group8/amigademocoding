@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Example Container</title>
+  <link rel="stylesheet" href="./styles/containerCode.css">  </style>
+</head>
+<body>
+  <h1>Example: Plasma done by using Copper waits</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+      <p>
+    	Copper plasma is created by reserving space in the Copper list for 40 MOVE 
+		instructions per vertical line, giving a resolution of 8 pixels. This is done 
+		for the desired vertical height of the plasma effect..
+      </p>
+      <p>
+			When the space has been filled, each frame the Blitter uses a copy function to blit the 
+			full vertical height, but only one word at a time vertically.
+			This is done across the full width of the plasma until the limit is reached.
+			The color table is the source, and the Copper list 
+			(one word at a time, or 16 pixels) is the destination.      </p>
+      <p>
+        Here is an example of Copper plasma
+      </p>
+
+        <pre>
+************************************            
+' Here are all the hardware equates *
+*************************************
+	incdir ""
+	include work:assembler/HardwareEquates.s
+
+********lesk**************************
+* Exec base and structure offset *
+**********************************
+ExecBase	equ	$0004
+
+***************************
+* These are the cia-names *
+***************************
+CIAASDR		equ	$bfec01
+CIAAICR		equ	$bfed01
+CIAACRA		equ	$bfee01
+
+
+
+**************************
+* Screen display equates *
+**************************
+ScreenHeight	equ	256
+ScreenWidth	equ	320/8
+ScreenDepth	equ	3	
+ScreenMemory	equ	ScreenHeight*ScreenWidth*ScreenDepth
+
+
+
+*plasma
+Plasma_Width	equ	40		; as number of groups of 8 pixels
+
+						; in the copperlist by each line
+						; of the plasma: each instruction
+						; copper occupies 4 bytes
+
+Bytes_Per_Line	equ	(Plasma_Width+2)*4	
+
+Plasma_Height	equ	200		;hEIGHT of plasma
+NewLine	equ	12		; value added to the index in the
+					; SinTab between one line and another
+					; It can be varied obtaining different plasmas,
+					; but MUST ALWAYS BE EVEN!!
+NewFrame	equ	8		 value subtracted from the index in the
+					; SinTab between one frame and another
+
+*******************************************
+* Here is where the actual program begins *
+*******************************************
+	lea.l	Sin,a0			Get stWart of sinus table
+	move.w	#512-1,d0		This the lenght
+SinCut	move.w	(a0),d1			Get entry
+	ext.l	d1
+	divs	#106*2,d1		And divide
+	move.w	d1,(a0)+		Save entry again
+	dbra	d0,SinCut		Do until sinus table finished
+
+	lea.l	cos,a0			Get stWart of sinus table
+	move.w	#512-1,d0		This the lenght
+CosCut	move.w	(a0),d1			Get entry
+	ext.l	d1
+	divs	#106*2,d1		And divide
+	move.w	d1,(a0)+		Save entry again
+	dbra	d0,CosCut		Do until sinus table finished
+
+
+	movea.l	ExecBase,a5		Get execbase for sys copper get
+	lea.l	Custom,a6		And hardware base also
+	jsr 	SetBplPointers
+	jsr	KillInterrupts		Geuss what
+	bsr	SetDMA			And geuss again
+	bsr	SetCIA			Set the CIA chips
+	bsr	InitScreen		Set mine screen
+	jsr initplasma
+
+lmb 	btst	#6,$bfe001		Test left mouse button
+	bne	lmb	
+	bsr	RestoreScreen		Set system screen
+	bsr	ResCIA			Restore the CIA chips
+	bsr	RestoreDMA		Restore system dma
+	bsr	RestoreInterrupts	Restore system interupts
+	moveq.l	#0,d0			Signal dos : no error
+	rts				Quit program
+
+***************************************
+* This is my vertical blank interrupt *
+***************************************
+MyVBLI	movem.l	d0-d7/a0-a6,-(sp)	Save regs
+
+	lea.l	Custom,a6
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	move.w	#ScreenDepth-1,d1
+	move.l	DScr(pc),d0	Get screen adress
+NextPlane
+	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap	d0
+	add.l	#ScreenWidth,d0
+	addq.w	#8,a0
+	dbra	d1,NextPlane
+
+
+	jsr doplasma
+
+	move.b	KeyDown(pc),d0
+
+	cmp.b   ,d0
+	bne 	nokey
+	add.w	#2,newframe	
+nokey
+	lea.l	WScr(pc),a0
+	lea.l	DScr(pc),a1
+	move.l	(a0),d0
+	move.l	(a1),d1
+	move.l	d1,(a0)
+	move.l	d0,(a1)
+
+out
+	move.w	#$0000,color00(a6)
+
+	movem.l	(sp)+,d0-d7/a0-a6
+	move.w	#$0020,intreq+custom	Clear vbli request
+	rte
+
+****************
+* Wait Blitter *
+****************
+WBlit	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit			If not wait
+	rts
+
+
+KeyDown	dc.w	$0000
+
+WScr	dc.l	Screen0
+DScr	dc.l	Screen1
+cnt dc.w 0
+txtpos dc.w 0
+cntbit	dc.w 0
+DummySprite
+	dc.w	$0000,$0000	Spr0pos+spr0ctl
+
+
+		
+****************************
+* Sinus and cosinus tables *
+******************;**********
+	incdir work:assembler/
+Sin	incbin	Sin.r
+Cos	incbin	Cos.r
+
+
+****************************************************
+* And this sets the bitplanepointers in copperlist *
+****************************************************
+SetBplPointers
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	lea.l	Screen0,a1	Get screen adress
+	move.l	a1,d0		And move to data register so i can swap
+	move.w	#ScreenDepth-1,d1	Get screen depth (-1 for dbra)
+ScLoop	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap.w	d0		High = Low : Low = High
+	add.w	#ScreenWidth*256,d0	Add screenwidth to screen for layed bitmaps
+	adda.w	#8,a0		Add to next bitplane in copper
+	dbra	d1,ScLoop	Do until all bitplanes are finished
+	rts			Return from subroutine
+
+
+**************************
+* This is the keyboard   *
+* (and serial) interrupt *
+**************************
+KeyBInt	movem.l	d0/a0/a6,-(sp)
+	lea.l	Custom,a6		Get hardware custom base
+	move.w	#$0660,color00(a6)
+	move.b	CIAAICR,d0		d0 = interrupt control register
+	btst	#3,d0			A serial port interrrupt ?
+	beq.s	KeyBIntexit		If not, exit
+	moveq.l	#0,d0			Clear d0
+	move.b	CIAASDR,d0		Get serial data
+	ori.b	#%01000000,CIAACRA	Serial port is now output
+	move.b	#%11111111,CIAASDR	Send handshake
+	andi.b	#%10111111,CIAACRA	Serial port is now input
+	ror.b	#1,d0			Scroll up/down flag back
+	not.b	d0			Complemet key-code
+	btst	#7,d0			Is it an up-code
+	beq.s	KeyC1			Clear keydown flag and exit
+	clr.w	KeyDown
+	bra.s	KeyBIntExit
+KeyC1	cmp.b	#$40,d0
+	bgt.s	KeyBIntexit
+	lea.l	KBDTable,a0
+	move.b	(a0,d0.w),d0
+	move.b	d0,KeyDown
+KeyBIntExit
+	move.w	#$0000,color00(a6)
+	move.w	#$0008,Intreq(a6)
+	movem.l	(a7)+,d0/a0/a6
+	rte
+
+KBDTable
+	dc.b	" 1234567890-=\ 0sadrtyuiop[] "
+	dc.b	"XZCwqefghjkl;'  WQE xzcvbnm,./ "
+	dc.b	".SAD"          -"
+	even
+
+
+******************************************************
+* These subroutines take over the system copper list *
+* and set mine copperlist and then restore it again. *
+******************************************************
+InitScreen
+	move.l	156(a5),a1		Get gfx-library base
+	move.l	38(a1),SysCopper	Get system copper list
+	move.l	#CopperList,cop1lch(a6)	And set mine copper instead
+	rts
+
+RestoreScreen
+	move.l	SysCopper,cop1lch(a6)	Restore system copperlist
+	rts
+
+SysCopper
+	dc.l	0
+
+*****************************************************
+* These little subroutines take over the interrupts *
+* and then restore them again to the system. Yeahh. *
+*****************************************************
+KillInterrupts
+	move.w	intenar(a6),SysIntenar		Get system inenta
+	move.w	intreqr(a6),SysIntreqr		Get system intreq
+	move.w	#$7fff,intreq(a6)		Clear system enable
+	move.w	#$7fff,intena(a6)		Clear system request
+	move.l	$6c,OldVBLI			Save system vbli
+	move.l	#MyVBLI,$6c			And set mine instead
+	move.w	#$8000+$4000+$20,intena(a6)	Allow vbli
+	rts
+
+RestoreInterrupts
+	move.l	OldVBLI(pc),$6c			Restore the system vbli
+	or.w	#$8000,SysIntenar		Set intena set bit
+	or.w	#$8000,SysIntreqr		Set intreq set bit
+	move.w	SysIntreqr(pc),intreq(a6)	Restore it
+	move.w	SysIntenar(pc),intena(a6)	Restore it
+	rts
+
+OldVBLI
+	dc.l	0
+SysIntenar
+	dc.w	0
+SysIntreqr
+	dc.w	0
+
+***********************************************************
+* This kills the system DMA and then sets my dma and when *
+* all that it is done it is capable of restoring it again *
+***********************************************************
+SetDMA	move.w	DMAconr(a6),d0		Fetch system dma status
+	move.w	d0,SystemDMA		Save system dma
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	#$83e0,DMAcon(a6)	Set COPEN+BPLEN+DMAEN+BLTEN
+	rts
+
+RestoreDMA
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	SystemDMA(pc),d0	Get old system dma
+	or.w	#$8000,d0		And set
+	move.w	d0,DMAcon(a6)		And now start it
+	rts
+
+SystemDMA
+	dc.w	0
+
+
+
+**********************************************
+* These routines take over the cia-ports and *
+* set up a keyboard handler.  Also restore.  *
+**********************************************
+SetCIA	move.l	$68,SysLevel2		Save system level 2 interrupt
+	move.l	#KeyBInt,$68		Set my keyboard interrupt
+	move.w	#$8008,Intena(a6)	Allow keyboard interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001000,CIAAICR	Start sp-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+ResCIA	move.l	SysLevel2,$68		Restore system level 2 interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001111,CIAAICR	Start sp/alrm/tb/ta-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+SysLevel2
+	dc.l	0
+
+
+	SECTION	GRAPHIC,DATA_C
+
+COPPERLIST:
+	dc.w	bplcon0,ScreenDepth*$1000+$200
+	dc.w	bplcon1,0
+	dc.w	bplcon2,0
+	dc.w	bpl1mod,80
+	dc.w	bpl2mod,80
+BPLPointers
+	dc.w	bpl1pth,0	
+	dc.w	bpl1ptl,0
+	dc.w	bpl2pth,0	
+	dc.w	bpl2ptl,0
+	dc.w	bpl3pth,0	
+	dc.w	bpl3ptl,0
+	dc.w	bpl4pth,0	
+	dc.w	bpl4ptl,0
+	dc.w	bpl5pth,0	
+	dc.w	bpl5ptl,0
+
+
+	DC.W	$0120,$0000,$0122,$0000
+	DC.W	$0124,$0000,$0126,$0000
+	DC.W	$0128,$0000,$012A,$0000	
+	DC.W	$012C,$0000,$012E,$0000
+	DC.W	$0130,$0000,$0132,$0000
+	DC.W	$0134,$0000,$0136,$0000
+	DC.W	$0138,$0000,$013A,$0000
+	DC.W	$013C,$0000,$013E,$0000
+
+
+
+
+PLASMA:
+	dcb.b	Plasma_Height*Bytes_Per_Line,0
+
+
+	dc.w	$FFFF,$FFFE	; Fine della copperlist
+
+
+
+
+******************************
+* And then the screen memory *
+******************************
+	incdir dh1:assembler/graphics/
+
+Screen0	ds.b   screenmemory
+Screen1	ds.b   screenmemory
+	incdir ""
+
+
+;****************************************************************************
+; This routine initializes the copperlist that generates the plasma. It arranges the
+; WAIT statements and the first half of the COPPERMOVE statements. At the end of the plasma
+; line, a final COPPERMOVE is inserted that loads the
+; black color into COLOR00.
+;************************************************************************
+
+InitPlasma:
+	lea	Plasma,a0	; indirizzo plasma
+	move.l	#$403bFFFE,d0	
+	move.w	#$180,d1	
+	move	#Plasma_Height-1,d3	
+InitLoop1:
+	move.l	d0,(a0)+		; scrive la WAIT
+	add.l	#$01000000,d0		
+	moveq	#Plasma_Width,d2		
+InitLoop2:
+	move.w	d1,(a0)+		
+				; "copper move"
+	addq.l	#2,a0			
+	dbra	d2,InitLoop2
+	dbra	d3,InitLoop1
+	rts
+
+************************************************************
+; This routine creates the plasma. It makes a loop of blitts, each
+; of which writes a "column" of the plasma, that is, it writes the colors in the
+; COPPERMOVES placed in a column.
+; The colors written in each column are read from a table, starting from
+; an address that varies from one column to another based on offsets
+; read from another table. Furthermore, between one frame and another the offsets
+; vary, creating the movement effect.
+;****************************************************************************
+
+DoPlasma:
+	lea	Color,a0		
+	lea	Sin,a3		
+	lea	Plasma+6,a1		
+	move.w	Sinadd(pc),d0		;
+	sub.w	#NewFrame,d0		
+	and.w	#$03FF,d0	
+	move.w	d0,Sinadd		;
+	move.w	#Plasma_Height*64+1,d3	; dimensione
+	moveq	#Plasma_Width-1,d2	
+PlasmaLoop:				; inizio loop blittate
+	move.w	(a3,d0.w),d1		; legge offset dalla tabella
+	lea	(a0,d1.w),a2	
+
+	Btst	#6,2(a6)
+WaitBlit:
+	Btst	#6,2(a6)		
+	bne.s	WaitBlit
+	move.l	#$09f00000,BLTTCON0(a6)	
+	move.l  #-1,BLTAFWM(a6)		; BLTAFWM/BLTALWM
+	move.w	#0,bltamod(a6)
+	move.w	#bytes_per_line-2,bltdmod(a6)
+	move.l	a2,BLTAPT(a6)		; BLTAPT 
+	move.l	a1,BLTDPT(a6)		; BLTDPT 
+	move.w	d3,$BLTSIZE(a6)		; BLTSIZE
+
+	addq.w	#4,a1			
+	add.w	#NewLine,d0		
+	and.w	#$03FF,d0		
+
+	dbra	d2,PlasmaLoop
+	rts
+
+
+
+
+Sinadd:	dc.w	0
+
+; Input: D0 = number to convert
+; Output: buffer contains ASCII string (null-terminated)
+; Uses: D0, D1, D2, A0
+
+        LEA     buffer,A0        ; pointer to output buffer
+        MOVE.L  D0,D1            ; copy value to D1 (so we can modify it)
+        LEA     endbuf,A0        ; start filling digits backwards
+        MOVE.B  #0,-(A0)         ; null terminator
+
+convert_loop:
+        DIVU    #10,D1           ; D1 / 10 -> quotient in upper word, remainder in lower word
+        SWAP    D1               ; remainder now in lower word
+        ADDI.B  #'0',D1          ; convert remainder to ASCII
+        MOVE.B  D1,-(A0)         ; store digit
+        SWAP    D1               ; swap back so quotient is in lower word
+        MOVE.W  D1,D1            ; clear upper word (since DIVU result is in lower word only)
+        TST.W   D1               ; check if quotient == 0
+        BNE     convert_loop
+		rts
+
+
+;****************************************************************************
+*Here is the color table that is written into the plasma.
+; There must be enough colors to be read whatever the starting address
+; is. In this example the starting address can vary from
+; "Color" (first color) to "Color+100" (50th color), because
+; 100 is the maximum offset contained in the "SinTab".
+; If Alt_plasma=100 it means that each blit reads 100 colors.
+; So in total there must be 150 colors.
+;****************************************************************************
+
+Color:
+	 dc.w	$100,$200,$300,$400,$500,$600,$700
+	 dc.w	$800,$900,$A00,$B00,$C00,$D00,$E00,$F00
+	 dc.w	$F00,$E00,$D00,$C00,$B00,$A00,$900,$800
+	 dc.w	$700,$600,$500,$400,$300,$200
+	 dc.w	$002,$003,$004,$005,$006,$007
+   	 dc.w	$008,$009,$00A,$00B,$00C,$00D,$00E,$00F
+	 dc.w $00e,$01d,$02d,$03d,$04d,$05d,$06d,$07d,$08d,$09d	; blu-verde
+	 dc.w $0Ad,$0Bd,$0Cd,$0Dd,$0Ed,$0Fd,$0Fd,$0Ed,$0Dd,$0Cd
+	 dc.w $0Bd,$0Ad,$09d,$08d,$07d,$06d,$05d,$04d,$03d,$02d
+	 dc.w $01d,$00e
+	 dc.w $00e,$01d,$02c,$03b,$04a,$059,$068,$077,$086,$095	; blu-verde
+	 dc.w $0A4,$0B3,$0C2,$0D1,$0E0
+	dc.w	$0F0,$0E0,$0D0,$0C0,$0B0,$0A0,$090,$080
+	dc.w	$070,$060,$050,$040,$030,$020,$010
+	dc.w	$010,$020,$030,$040,$050,$060,$070
+	dc.w	$080,$090,$0A0,$0B0,$0C0,$0D0,$0E0,$0F0
+	dc.w	$1F0,$2F0,$3F0,$4F0,$5F0,$6F0,$7F0,$8F0
+	dc.w	$9F0,$AF0,$BF0,$CF0,$DF0,$EF0,$FF0
+	dc.w	$FF0,$EE0,$DD0,$CC0,$BB0,$AA0,$990,$880
+	dc.w	$770,$660,$550,$440,$330,$220,$110
+	dc.w	$100,$200,$300,$400,$500,$600,$700
+	dc.w	$800,$900,$A00,$B00,$C00,$D00,$E00,$F00
+	dc.w	$F00,$E00,$D00,$C00,$B00,$A00,$900,$800
+	dc.w	$700,$600,$500,$400,$300,$200
+	dc.w	$002,$003,$004,$005,$006,$007
+	dc.w	$008,$009,$00A,$00B,$00C,$00D,$00E,$00F
+	dc.w $00e,$01d,$02d,$03d,$04d,$05d,$06d,$07d,$08d,$09d	; blu-verde
+	dc.w $0Ad,$0Bd,$0Cd,$0Dd,$0Ed,$0Fd,$0Fd,$0Ed,$0Dd,$0Cd
+	dc.w $0Bd,$0Ad,$09d,$08d,$07d,$06d,$05d,$04d,$03d,$02d
+	dc.w $01d,$00e
+	
+	dc.w $00e,$01d,$02c,$03b,$04a,$059,$068,$077,$086,$095	; blu-verde
+	dc.w $0A4,$0B3,$0C2,$0D1,$0E0
+	dc.w	$0F0,$0E0,$0D0,$0C0,$0B0,$0A0,$090,$080
+	dc.w	$070,$060,$050,$040,$030,$020,$010
+
+	dc.w	$010,$020,$030,$040,$050,$060,$070
+	dc.w	$080,$090,$0A0,$0B0,$0C0,$0D0,$0E0,$0F0
+
+	dc.w	$1F0,$2F0,$3F0,$4F0,$5F0,$6F0,$7F0,$8F0
+	dc.w	$9F0,$AF0,$BF0,$CF0,$DF0,$EF0,$FF0
+
+	dc.w	$FF0,$EE0,$DD0,$CC0,$BB0,$AA0,$990,$880
+	dc.w	$770,$660,$550,$440,$330,$220,$110
+
+
+	end
+
+
+         
+         </pre>
+     </p>
+  </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

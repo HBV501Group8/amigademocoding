@@ -6,7 +6,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "allowArbitraryExtensions": true,
-    "types": ["node"],
+    "types": ["node", "@cloudflare/workers-types"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "outDir": "./dist",
