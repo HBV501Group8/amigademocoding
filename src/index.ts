@@ -86,6 +86,13 @@ app.post('/api/register', async (c) => {
   return c.html(Login());
 });
 
+
+app.get('/logout', (c) => {
+  setCookie(c, 'user', '');
+  setCookie(c, 'email', '');
+  return c.redirect('/login');
+});
+
 /**
  * 🧪 Debug route: set user cookie = 1
  * @route GET /set
@@ -119,7 +126,11 @@ app.get('/set3', (c) => {
  */
 app.get ('/', async(c) => {
   const userEmail = getCookie(c, 'email');
-  const user = getCookie(c, 'user');
+  let user = getCookie(c, 'user');
+  if(!user) {
+    user =  '1';
+   //  return c.html(Login());
+  }
   if(userEmail=='') {
     return c.html(Login());
   }
@@ -225,7 +236,7 @@ app.get('/Artifacts/Part3/downloadsource4', async (c) => {
 })
 
 app.get('/Artifacts/Part3/downloadvideo', async (c) => {
-  const url = new URL('/Video/demo.mp4', c.req.url)
+  const url = new URL('/Video/amigademo.mp4', c.req.url)
 
   const res = await c.env.ASSETS.fetch(new Request(url))
 
@@ -234,7 +245,7 @@ app.get('/Artifacts/Part3/downloadvideo', async (c) => {
     headers: {
       ...res.headers,
       "Content-Type": "video/mp4",
-      "Content-Disposition": 'attachment; filename="demo.mp4"'
+      "Content-Disposition": 'attachment; filename="amigademo.mp4"'
     }
   })
 })

@@ -14,46 +14,90 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-		Now it’s time to add the Z axis to our demo coding.
-		How do we use the Z axis and display it on screen?
-		What we need to do is divide the X and Y axes by the Z axis, so it appears as
-		 if we have a 3D display.
-      </p>
-	  <p>
-		Now I have a ready binary that contains 1000 random X, Y, Z values.
-		So we must begin by reading all the X, Y, and Z values, three at a time.
-		For example, we first get the initial X, Y, Z values from the random star data.
-	  </p>
-	  <p>
-		Here we need to use two new instructions: EXT and DIVS.
-		EXT.L Dn takes the low word (D0–D7) and sign-extends it into the high word.
-		DIVS is signed division (word divisor, longword dividend → word quotient, word remainder).
-    	DIVU is the unsigned version (it works the same, but with unsigned arithmetic).	  </p>
-	  <p>
-		Here we need to use DIVS, as there are also negative values in the random stars binary.
-	  </p>
-	  <pre>
-			lea Stars,a0		;get address of stars bin
-			move.w	(a0)+,d0	; Gte x value
-			move.w	(a0)+,d1	; Get yvalue
-			move.w	(a0)+,d2	; Get Z value
+<p>
+  Now it’s time to introduce the <strong>Z axis</strong> into our demo.
+  How do we use it and display it on screen?
+</p>
 
-			ext.l	d0			; Extend to longword
-			ext.l	d1			; Extend to longword
-			divs 	d2,d0		; Divide signed x by z
-			divs 	d2,d1		; Divide singed y by z
-			add.w	#160,d0		; Add center of screen x
-			add.w	#120,d1		; Add center of screen y
+<p>
+  The key idea is simple: we divide the X and Y coordinates by the Z value.
+  This creates a perspective effect, making the scene appear three-dimensional.
+</p>
 
-	  </pre>
-	  <p>
-		How about the plotting part?
-		Here is a plotting routine that does the job.
-		You don’t have to understand it completely, but it is usable.
-		It takes D0 = X, D1 = Y, and D3 = the number of the color register that
-		 defines the color on the screen, with A0 as the address register (screen base address).
-	  </p>
+<p>
+  In this example, we use a pre-generated binary file containing 1000 random (X, Y, Z) values.
+  We process them by reading three values at a time: X, Y, and Z.
+</p>
+
+<p>
+  We start by loading the first set of coordinates from the star data.
+</p>
+
+<h3>New Instructions: EXT and DIVS</h3>
+
+<p>
+  To perform the projection correctly, we introduce two important 68k instructions:
+</p>
+
+<ul>
+  <li>
+    <strong>EXT.L Dn</strong> — Sign-extends a 16-bit value into a 32-bit longword
+  </li>
+  <li>
+    <strong>DIVS</strong> — Signed division  
+    (word divisor, longword dividend → word quotient + remainder)
+  </li>
+  <li>
+    <strong>DIVU</strong> — Unsigned division (used when values are always positive)
+  </li>
+</ul>
+
+<p>
+  In this case, we use <strong>DIVS</strong> because the star dataset includes negative values.
+</p>
+
+<pre>
+lea     Stars, a0        ; get address of stars binary
+
+move.w  (a0)+, d0        ; get X value
+move.w  (a0)+, d1        ; get Y value
+move.w  (a0)+, d2        ; get Z value
+
+ext.l   d0               ; extend to longword
+ext.l   d1               ; extend to longword
+
+divs    d2, d0           ; X / Z (signed division)
+divs    d2, d1           ; Y / Z (signed division)
+
+add.w   #160, d0         ; center X on screen
+add.w   #120, d1         ; center Y on screen
+</pre>
+
+<h3>Plotting the Result</h3>
+
+<p>
+  After projection, we draw the resulting pixel on screen using a plotting routine.
+</p>
+
+<p>
+  You don’t need to fully understand this routine at this stage—it can simply be reused.
+</p>
+
+<p>
+  It takes the following inputs:
+</p>
+
+<ul>
+  <li><strong>D0</strong> = X coordinate</li>
+  <li><strong>D1</strong> = Y coordinate</li>
+  <li><strong>D3</strong> = color register (defines pixel color)</li>
+  <li><strong>A0</strong> = screen base address</li>
+</ul>
+
+<pre>
+; plotting routine goes here
+</pre>
+  </p>
 	  <pre>
 
 	**************************

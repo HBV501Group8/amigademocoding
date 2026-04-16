@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hidden line 3d rotataing cube with light source</title>
+  <link rel="stylesheet" href="../../static/codeContainer.css">  </style>
+</head>
+<body>
+  <h1>Example Rotating filled 3d Cube with light source.</h1>
+  <div class="example-container">
+    <div class="example-header">
+      <span>assembly.asm</span>
+      <button class="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="textout">
+    </div>
+  <script>
+    function copyCode() {
+      const code = document.getElementById("code-block").innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      });
+    }
+  </script>
+        <p>
+        <strong>Flat shading</strong> is a lighting and coloring technique where each surface is rendered using a single, uniform color—rather than smooth gradients or blended transitions.
+        </p>
+
+        <h3>The Core Idea</h3>
+        <p>
+        Imagine an object as a collection of distinct flat faces (planes).  
+        Each face is assigned one color based on how it is oriented relative to a light source, with no soft blending between surfaces.
+        </p>
+
+        <h4>How It Works</h4>
+        <ul>
+        <li><strong>Choose a light source:</strong> For example, light coming from the top-left.</li>
+        <li><strong>Divide the object into planes:</strong> Even curved objects are approximated as flat sections.</li>
+        <li><strong>Assign one color per plane:</strong>
+            <ul>
+            <li>Faces toward the light → lighter color</li>
+            <li>Faces away from the light → darker color</li>
+            <li>Side angles → midtones</li>
+            </ul>
+        </li>
+        <li><strong>No gradients or blur:</strong> Transitions between light and shadow are sharp and clearly defined.</li>
+        </ul>
+
+      <h4>How Is Color Calculated?</h4>
+        <p>
+        The color of each face depends on the angle between its <em>normal vector</em> 
+        (a line perpendicular to the surface) and the direction of the light source.  
+        Faces that point more directly toward the light appear brighter, while those 
+        angled away appear darker.
+        </p>
+
+        <p>
+        To calculate this, we use the <strong>dot product</strong> between the face’s 
+        normal vector and the light direction. Since we already have the normal vectors 
+        for each face of the cube (from hidden line rendering), this allows us to easily 
+        determine how much light each face receives.
+        </p>
+        </p>
+        <pre>
+        *************************************************
+        * Backface culling.                             * 
+        * Entry a2=Vectors table a3 = porojected coords *
+        * Output d1 > 0 plane is visible
+        **************************************************
+        normal_Z:
+            movem.l	d1-d6,-(sp)
+
+            move.w	0(a2),d6		; coord 1
+            muls	#6,d6		; *4
+            move.w	(a3,d6.w),d0	; X1
+            move.w	2(a3,d6.w),d1	; Y1
+
+            move.w	4(a2),d6	; coord 2
+            muls	#6,d6		; *4
+            move.w	(a3,d6.w),d2	; X2
+            move.w	2(a3,d6.w),d3	; Y2
+
+            move.w	2(a2),d6	; coord 3
+            muls	#6,d6		; *4
+            move.w	(a3,d6.w),d4	; X3
+            move.w	2(a3,d6.w),d5	; Y3
+
+            sub.l	d4,d0		; (X1-X3)=Vx1
+            sub.l	d5,d1		; (Y1-Y3)=Vy1
+            sub.l	d4,d2		; (X2-X3)=Vx2
+            sub.l	d5,d3		; (Y2-Y3)=Vy2
+
+            muls.w	d3,d0		; Vx1*Vy2
+            muls.w	d2,d1		; Vy1*Vx2
+
+            sub.l	d1,d0		; (Vx1*Vx2)-(Vy1*Vy2) If d0 is negative then plane is not visible
+            movem.l	(sp)+,d1-d6
+            rts
+
+        </pre>
+    </p>
+<p>
+    Here is the complete specific code for the filled cube with light source. It builds on the hidden line rendering code, but adds the flat shading calculations and color assignments based on the light source direction.    
+</p>
+    <pre>
+*************************************
+* Here are all the hardware equates *
+*************************************
+	incdir df0:
+	include INCLUDES/hardwareequates.s
+**********************************
+* Exec base and structure offset *
+**********************************
+
+
+***************************
+* These are the cia-names *
+***************************
+CIAASDR		equ	$bfec01
+CIAAICR		equ	$bfed01
+CIAACRA		equ	$bfee01
+
+**********************
+* Control characters *
+**********************
+lf		equ	$09
+**************************
+* Screen display equates *
+**************************
+ScreenHeight	equ	256
+ScreenWidth	equ	320/8
+ScreenDepth	equ	4
+ScreenMemory	equ	ScreenHeight*ScreenWidth*ScreenDepth
+*******************************************
+* Here is where the actual program begins *
+*******************************************
+
+
+	movea.l	$4,a5		Get execbase for sys copper get
+	lea.l	Custom,a6		And hardware base also
+	bsr	KillInterrupts		Geuss what
+	bsr	SetDMA			And geuss again
+	bsr	SetCIA			Set the CIA chips
+	bsr	InitScreen		Set mine screen
+lmb 	btst	#6,$bfe001		Test left mouse button
+	bne	lmb			Looped until pressed
+	bsr	RestoreScreen		Set system screen
+	bsr	ResCIA			Restore the CIA chips
+	bsr	RestoreDMA		Restore system dma
+	bsr	RestoreInterrupts	Restore system interupts
+	moveq.l	#0,d0			Signal dos : no error
+eq	rts				Quit program
+
+
+***************************************
+* This is my vertical blank interrupt *
+***************************************
+MyVBLI	
+	movem.l	d0-d7/a0-a6,-(sp)	Save regs
+	lea.l	Custom,a6
+*	move.w	#$fff,Color00(a6)
+	add.w	#1,framecnt
+
+	lea.l	BplPointers,a0	Get bitplane pointers in copper
+	move.w	#ScreenDepth-1,d1
+	move.l	DScr(pc),d0	Get screen adress
+NextPlane
+	move.w	d0,6(a0)	And set low address word
+	swap.w	d0		Low = High : High = Low
+	move.w	d0,2(a0)	And set high adress word
+	swap	d0
+	add.l	#ScreenWidth*screenheight,d0
+	addq.w	#8,a0
+	dbra	d1,NextPlane
+
+*	bra	skipcls
+	move.w	#screendepth-1,d7
+	move.l	WScr(pc),d0
+*	add.l	#70*40,d0
+bplloop
+	jsr	blitterbusy
+	move.l	d0,bltdpth(a6)
+	move.w	#0,bltdmod(a6)
+	move.l	#$01000000,bltcon0(a6)
+	move.w	#250*64+(ScreenWidth/2),bltsize(a6)
+	add.l	#screenwidth*screenheight,d0
+	dbra	d7,bplloop
+skipcls
+	clr.l	d0
+	clr.l	d1
+
+	lea	script2,a1
+	add.l	#4,a1
+	
+	move.w	taskoffset,d0
+	add.w	d0,a1
+	move.l	-4(a1),a0
+	jsr	(a0)
+
+	move.l	a1,a2
+	move.l	(a1),d3
+	mulu.w	#4,d3
+	add.w	#4,d3
+
+	
+	move.l	(a1,d3),d0
+	move.l	4(a1,d3),d1
+	move.w	framecnt,d2
+
+	cmp.w	d1,d2
+	bne	noadvance
+	move.l	d3,d4
+	add.w	#12,d4
+	add.w	d4,taskoffset
+noadvance
+	cmp.w	d0,d2
+	blt	outr
+skiproutine	
+	cmp.w	d1,d2
+	bgt	outr
+	move.l	(a1),d3
+	move.w	d3,nrrouts
+	move.w	#0,taskcnt
+	clr.l	d5
+routloop	
+	add.w	#1,taskcnt
+	move.l	a1,a2
+	move.l	a1,-(sp)
+	
+	add.w	#4,d5
+	add.w	d5,a2
+	move.w	d5,-(sp)
+	move.l	(a2),a0
+	jsr	(a0)
+	move.w	(sp)+,d5
+	move.w	taskcnt,d3
+	move.w	nrrouts,d4
+	move.l	(sp)+,a1
+	cmp.w	d3,d4
+	bne	routloop 
+outr
+
+
+	move.b	KeyDown(pc),d0
+*outvbli	
+
+*	jsr	mt_music
+	
+	lea.l	WScr(pc),a0
+	lea.l	DScr(pc),a1
+	move.l	(a0),d0
+	move.l	(a1),d1
+	move.l	d1,(a0)
+	move.l	d0,(a1)
+
+*	move.w	#$0000,color00(a6)
+
+	movem.l	(sp)+,d0-d7/a0-a6
+	move.w	#$0020,intreq+custom	Clear vbli request
+	rte
+
+
+Offset		DC.L    0
+Delay		DC.B 	$8
+ even
+TextPos		DC.L	0
+
+
+nrrouts	dc.w	0
+taskcnt	dc.w	0
+taskoffset	dc.w 0	
+zadd	dc.w	0
+SinAdd0	dc.w	0*2
+SinAdd1	dc.w	0*2
+SinAddV	dc.w	0*2
+SinPos0	dc.w	$0000
+SinPos1	dc.w	$0000
+
+*TextPos	dc.l	$00000000
+TextSpd	dc.w	$0002
+TextFix	dc.w	$0000
+	even
+
+script2		
+
+ dc.l setup,4,rotate,projection,draw,fillpage
+ dc.l 50*0,50*121
+
+setupdummy
+	rts
+
+setup	
+	movem.l	d0-d7/a0-a6,-(sp)	Save regs
+	move.w	#450,zmax
+	movem.l	(sp)+,d0-d7/a0-a6
+	rts
+	
+
+
+KeyDown	dc.w	$0000
+framecnt	dc.w	0
+WScr	dc.l	Screen0
+DScr	dc.l	Screen1
+cnt2 dc.w 0
+object dc.w	3
+
+wait
+	btst #14,dmaconr(a6)
+	bne wait
+	rts
+
+
+**************************
+* This is the keyboard   *
+* (and serial) interrupt *
+**************************
+KeyBInt	movem.l	d0/a0/a6,-(sp)
+	lea.l	Custom,a6		Get hardware custom base
+	move.w	#$0660,color00(a6)
+	move.b	CIAAICR,d0		d0 = interrupt control register
+	btst	#3,d0			A serial port interrrupt ?
+	beq.s	KeyBIntexit		If not, exit
+	moveq.l	#0,d0			Clear d0
+	move.b	CIAASDR,d0		Get serial data
+	ori.b	#%01000000,CIAACRA	Serial port is now output
+	move.b	#%11111111,CIAASDR	Send handshake
+	andi.b	#%10111111,CIAACRA	Serial port is now input
+	ror.b	#1,d0			Scroll up/down flag back
+	not.b	d0			Complemet key-code
+	btst	#7,d0			Is it an up-code
+	beq.s	KeyC1			Clear keydown flag and exit
+	clr.w	KeyDown
+	bra.s	KeyBIntExit
+KeyC1	cmp.b	#$40,d0
+	bgt.s	KeyBIntexit
+	lea.l	KBDTable,a0
+	move.b	(a0,d0.w),d0
+	move.b	d0,KeyDown
+KeyBIntExit
+	move.w	#$0000,color00(a6)
+	move.w	#$0008,Intreq(a6)
+	movem.l	(a7)+,d0/a0/a6
+	rte
+
+KBDTable
+	dc.b	" 1234567890-=\ 0sadrtyuiop[] "
+	dc.b	"XZCwqefghjkl;'  WQE xzcvbnm,./ "
+	dc.b	".SAD"          -"
+	even
+
+
+******************************************************
+* These subroutines take over the system copper list *
+* and set mine copperlist and then restore it again. *
+******************************************************
+InitScreen
+	move.l	156(a5),a1		Get gfx-library base
+	move.l	38(a1),SysCopper	Get system copper list
+	move.l	#CopperList,cop1lch(a6)	And set mine copper instead
+
+	move.l  #-1,bltafwm(a6)
+	move.l  #screen0,d0
+	move.l	d0,bltdpth(a6)
+	
+	move.w	#0,bltdmod(a6)	Modulo for screen clear
+	move.l  #$01000000,bltcon0(a6)
+	move.w  #ScreenHeight*64+ScreenWidth/2*ScreenDepth,bltsize(a6)
+
+Wblit2a1	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit2a1		If not wait
+	move.l  #-1,bltafwm(a6)
+	move.l  #screen1,d0
+	move.l	d0,bltdpth(a6)
+	
+	move.w	#0,bltdmod(a6)	Modulo for screen clear
+	move.l  #$01000000,bltcon0(a6)
+	move.w  #ScreenHeight*64+ScreenWidth/2*ScreenDepth,bltsize(a6)
+
+WBlit2a2	
+	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit2a2		If not wait
+
+
+	bra	noraster
+
+*	lea	raster,a0
+*	lea	colort0,a1
+	move.w	#180,d7
+	move.l	#$6001fffe,d0
+	move.w	#$0182,d1
+rasloopB
+	move.l	d0,(a0)+
+	add.l	#$01000000,d0
+	move.w	d1,(a0)+
+	move.w  (a1)+,(a0)+
+
+	dbra d7,rasloopB
+
+
+noraster
+	rts
+
+RestoreScreen
+	move.l	SysCopper,cop1lch(a6)	Restore system copperlist
+	rts
+
+SysCopper
+	dc.l	0
+
+*****************************************************
+* These little subroutines take over the interrupts *
+* and then restore them again to the system. Yeahh. *
+*****************************************************
+KillInterrupts
+	move.w	intenar(a6),SysIntenar		Get system inenta
+	move.w	intreqr(a6),SysIntreqr		Get system intreq
+	move.w	#$7fff,intreq(a6)		Clear system enable
+	move.w	#$7fff,intena(a6)		Clear system request
+	move.l	$6c,OldVBLI			Save system vbli
+	move.l	#MyVBLI,$6c			And set mine instead
+	move.w	#$8000+$4000+$20,intena(a6)	Allow vbli
+	rts
+
+RestoreInterrupts
+	move.l	OldVBLI(pc),$6c			Restore the system vbli
+	or.w	#$8000,SysIntenar		Set intena set bit
+	or.w	#$8000,SysIntreqr		Set intreq set bit
+	move.w	SysIntreqr(pc),intreq(a6)	Restore it
+	move.w	SysIntenar(pc),intena(a6)	Restore it
+	rts
+
+OldVBLI
+	dc.l	0
+SysIntenar
+	dc.w	0
+SysIntreqr
+	dc.w	0
+
+***********************************************************
+* This kills the system DMA and then sets my dma and when *
+* all that it is done it is capable of restoring it again *
+***********************************************************
+SetDMA	move.w	DMAconr(a6),d0		Fetch system dma status
+	move.w	d0,SystemDMA		Save system dma
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	#$83c0,DMAcon(a6)	Set COPEN+BPLEN+DMAEN+BLTEN
+	rts
+
+RestoreDMA
+	move.w	#$7fff,DMAcon(a6)	Clear all dma
+	move.w	SystemDMA(pc),d0	Get old system dma
+	or.w	#$8000,d0		And set
+	move.w	d0,DMAcon(a6)		And now start it
+	rts
+
+SystemDMA
+	dc.w	0
+
+**********************************************
+* These routines take over the cia-ports and *
+* set up a keyboard handler.  Also restore.  *
+**********************************************
+SetCIA	move.l	$68,SysLevel2		Save system level 2 interrupt
+	move.l	#KeyBInt,$68		Set my keyboard interrupt
+	move.w	#$8008,Intena(a6)	Allow keyboard interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001000,CIAAICR	Start sp-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+ResCIA	move.l	SysLevel2,$68		Restore system level 2 interrupt
+	move.b	#%01111111,CIAAICR	Stop all timer interrupts
+	move.b	#%10001111,CIAAICR	Start sp/alrm/tb/ta-interrupt
+	move.b	#%00000000,CIAASDR	Clear serial data register
+	move.b	#%10000000,CIAACRA	Set control register A
+	rts
+
+SysLevel2
+	dc.l	0
+;	color=d3
+
+**************************
+* Subprogram : Set point *
+* The parameters are :   *
+* a0 ^ Screen		 *
+* d0 = x   :  d1 = y     *
+* d2 = ScreenWidth/8     *
+* d3 = Color code	 *
+* d0-d3/a0 are trashed   *
+**************************
+point22		
+	move.w	#1,d3
+	mulu	d2,d1			Get y-axe add
+	adda.l	d1,a0			Add to screen
+	move.w	d0,d1			Save x
+	lsr.w	#3,d0			Get byte value
+	adda.w	d0,a0			Add to screen
+	not.w	d1			And reverse for bset
+	moveq.l	#ScreenDepth-1,d0	Set which planes
+SetP2	lsr.w	#1,d3			Test color code
+	bcc.s	SetNoP2			If no bitmap set no point
+	bset	d1,(a0)			And set point
+SetNoP2	add.l	#ScreenWidth*screenheight,a0		Next bitmap
+	dbra	d0,SetP2			Do until all bitmaps are fin.
+	rts
+*******************************
+* And the megalong copperlist *
+*******************************
+	Section	Copper,DATA_C
+
+cw = $fffe
+
+CopperList
+	dc.w	$1001,$fffe
+
+BPLPointers
+	dc.w	bpl1pth,0	
+	dc.w	bpl1ptl,0
+	dc.w	bpl2pth,0	
+	dc.w	bpl2ptl,0
+	dc.w	bpl3pth,0	
+	dc.w	bpl3ptl,0
+	dc.w	bpl4pth,0	
+	dc.w	bpl4ptl,0
+	dc.w	bpl5pth,0	
+	dc.w	bpl5ptl,0
+	dc.w	bplcon0,ScreenDepth*$1000+$200
+	dc.w	bplcon1,0
+	dc.w	bplcon2,0
+	dc.w	bpl1mod,0
+	dc.w	bpl2mod,0
+	dc.w	diwstrt,$2981
+	dc.w	diwstop,$2ac1
+	dc.w	ddfstrt,$0038
+	dc.w	ddfstop,$00d0
+	
+*	dc.w	$6811,$fffe
+*	dc.w	$0180,$000
+*	dc.w	$6911,$fffe
+*	dc.w	$0180,$000
+*	dc.w	$7211,$fffe
+
+copcols
+	dc.w color00,$0000,COLOR01,$002f,COLOR02,$0005,COLOR03,$0006
+	DC.W COLOR04,$008,COLOR05,$00c,COLOR06,$000F,COLOR07,$0F00
+	DC.W COLOR08,$0000,COLOR09,$000,COLOR10,$0fff,COLOR11,$0000
+	DC.W COLOR12,$0000,COLOR13,$0000,COLOR14,$0000,COLOR15,$0fff
+
+
+
+
+	dc.l	$fffffffe
+
+
+
+BlitterBusy
+	btst	#14,$dff002		; whats the blitter upto?
+	bne	BlitterBusy		; Slaving away
+	rts				; Fuck-all
+
+
+	Section	Screen,data_c
+Screen0		DCB.B   screenmemory,0
+screen1		DCB.B   screenmemory,0
+
+buffer		dcb.b	40*256,0
+	
+ even		
+ 	
+
+***********************************
+* Rotation routine. Precalculate  *
+* constants	 		  *	
+***********************************mp.w
+
+Rotate
+	lea 	sin,a0
+	lea 	cos,a1
+*	lea 	points7,a2
+	lea	cube,a2
+	move.w	(a2),d7
+	subq	#1,d7
+	addq	#2,a2	
+	lea	rotcoords,a3
+	move.w	thetax,d0
+	add.w	#4,d0
+*	add.w	d0,d0
+	and.w 	#$3ff,d0
+	move.w	d0,thetax
+	move.w	(a0,d0),sinx	sin x
+	move.w	(a1,d0),cosx	cos x
+	move.w	thetay,d0
+	add.w	#2,d0
+*	add.w	d0,d0
+	and.w	#$3ff,d0
+	move.w	d0,thetay
+	move.w	(a0,d0),siny	sin y
+	move.w	(a1,d0),cosy	cos y
+	move.w	thetaz,d0
+	add.w	#4,d0
+*	add.w	d0,d0
+	and 	#$3ff,d0
+	move.w	d0,thetaz
+	move.w	(a0,d0),sinz	sin z
+	move.w	(a1,d0),cosz	cos z
+	moveq	#14,d6		
+
+
+rloop
+	move.w	(a2)+,d0
+	move.w	(a2)+,d1
+	move.w	(a2)+,d2
+	move.w	d0,d3
+	move.w	d1,d4
+	move.w	d2,d5
+
+************************************
+* Rotation of x axis		   *	
+************************************
+
+	muls	cosx,d1 	y * cos(thetax)
+	muls	sinx,d2		z * sin(Thetax)
+	sub.l	d2,d1		y * cos(thetax) - z * sin(Thetax) 
+	asr.l	d6,d1
+*	swap 	d1
+	move.w	d1,temp1		new y
+
+*	move.w	d3,d0
+	move.w	d4,d1
+	move.w	d5,d2
+
+
+	muls	cosx,d2 	z * cos(thetax)
+	muls	sinx,d1		y * sin(Thetax)
+	add.l	d1,d2		y * cos(thetax) + z * sin(Thetax) 
+	asr.l	d6,d2
+*	swap	d2
+	move.w	d2,temp2		new z
+	move.w	temp1,desty
+	move.w	temp2,destz
+
+	move.w	d3,d0	
+	move.w	destz,d2
+
+************************************
+* Rotation of y axis		   *	
+************************************
+
+	muls	cosy,d2		z * cos(y)
+	muls	siny,d0		x * sin(y)
+	sub.l	d0,d2		x * sin(y) - z * cos(y)
+	asr.l	d6,d2
+*	swap	d2
+	move.w	d2,temp1	new z
+
+	move.w	d3,d0
+	move.w	destz,d2
+
+	muls	cosy,d0		x * cos(y)
+	muls	siny,d2		z * sin(y)
+	add.l	d2,d0		x * cos(y) + z * sin(y)
+	asr.l	d6,d0
+*	swap	d0
+	move.w	d0,temp2		new x	
+
+	move.w	temp1,destz
+	move.w	temp2,destx
+
+	move.w	destx,d0
+	move.w	desty,d1
+
+************************************
+* Rotation of z axis		   *	
+************************************
+
+	muls	cosz,d0		x * cos(z)
+	muls	sinz,d1		y * sin(z)
+	sub.l	d1,d0		x * cos(z) - y * sin(z)
+	asr.l	d6,d0
+*	swap	d0
+	move.w	d0,temp1
+
+	move.w	destx,d0
+	move.w	desty,d1
+			 	
+	muls	cosz,d1
+	muls	sinz,d0
+	add.l	d0,d1
+	asr.l	d6,d1
+*	swap	d1
+	move.w	d1,temp2
+
+	move.w	temp1,destx
+	move.w	temp2,desty
+
+	move.w	destx,d0
+	move.w	desty,d1
+	move.w	destz,d2
+
+	move.w	d0,(a3)+
+	move.w	d1,(a3)+
+	move.w	d2,(a3)+
+
+
+	dbra	d7,rloop	
+	rts
+
+nrpoints	dc.w	0
+
+***********************
+* Do projection	      *
+***********************	
+Projection
+
+	lea	rotcoords,a0
+	lea	projectcoords,a1
+	move.w	#16,d7
+	subq	#1,d7
+
+
+project
+	move.w	(a0)+,d0
+	move.w	(a0)+,d1
+	move.w	(a0)+,d2
+	asr.w	#6,d2
+	tst.w	d2
+	bne	noresz
+	move.w	#1,d2
+noresz
+	
+
+	add.w	zpers,d2			Add z-viewpoint to x-value
+	sub.w	#1,zpers
+	MOVE.W	zmax,d4
+	MOVE.W	zpers,d5
+	cmp.w	d4,d5
+	bgt	noresetpers
+	move.w	d4,zpers
+	
+noresetpers
+
+	ext.l	d0			Extend to longword
+	ext.l	d1			------------------
+	asl.l	#8,d0			Multiply with 256
+	asl.l	#8,d1			Multiply with 256
+	divs	d2,d0			x/z
+	divs	d2,d1			y/z
+	add.w	#160,d0
+	add.w	#135,d1
+	move.w	d0,(a1)+
+	move.w	d1,(a1)+
+	dbra	d7,project	
+	rts
+
+init	dc.w	0
+zmax	dc.w	0
+t
+zpers2	dc.w	250
+zpers	dc.w	6000
+zpadd	dc.w	1
+zpadd2	dc.w	1
+
+**************************************
+* This is the actual drawing routine *
+* Can handle up to 3 bitplanes       *
+*************************************
+
+draw
+*	lea 	faces7,a2
+	lea	vectors,a2
+	lea	projectcoords,a1
+	lea	rotcoords,a3
+	move.w	(a2)+,d7
+	subq	#1,d7
+	clr.w	facecnt
+plot
+	move.w	(a2)+,d6
+	move.w	d6,nrpts
+	subq	#1,d6
+	move.w	(a2)+,color	 * color of plane
+	add.w	#1,facecnt
+
+	jsr	normal_z
+	bmi	noplane
+	clr.w	init
+	move.w	color,d3
+facloop
+	tst.w	init
+	bne	go
+	move.w	(a2)+,d5
+	lsl.w	#2,d5
+	move.w	(a1,d5),d0
+	move.w	2(a1,d5),d1
+	bra	notgo
+go
+	move.w	savex,d0
+	move.w	savey,d1
+notgo
+	move.w	#1,init
+	move.w	(a2)+,d5
+	lsl.w	#2,d5
+	move.w	(a1,d5),d2
+	move.w	2(a1,d5),d3
+	move.w	d2,savex
+	move.w	d3,savey
+	move.l	wscr,a0
+	move.w	#40,d4
+*	IF MODE = 2
+		jsr	fill_lines	* Drawline routine for filling
+*	ENDC
+*	IF MODE !=2
+*		jsr    Drawline
+*	ENDC
+	move.w	savex,d0
+	move.w	savey,d1
+	dbra	d6,facloop
+*	add.w	#4,a2
+	bra	noskip
+noplane
+	cmp.w	#6,nrpts
+	bne	noadd1
+	add.w	#14,a2
+	bra	noskip
+noadd1	cmp.w	#4,nrpts
+	bne	noadd2a
+	add.w	#10,a2
+	bra	noskip
+noadd2a
+	cmp.w	#3,nrpts
+	bne	noskip
+	add.w	#8,a2
+noskip
+	dbra	d7,plot
+	rts
+
+* Variables
+nrpts	dc.w	0
+color	dc.w	0
+temp1	dc.w	0
+temp2	dc.w	0
+
+destx	dc.w	0
+desty	dc.w	0
+destz	dc.w	0
+
+firstx	dc.w	0
+firsty	dc.w	0
+
+sinx	dc.w	0
+cosx	dc.w	0
+siny	dc.w	0
+cosy	dc.w	0
+sinz	dc.w	0
+cosz	dc.w	0
+	
+savex		dc.w	0
+savey		dc.w	0
+savez		dc.w	0
+
+tx	dc.l	0
+ty 	dc.l	0
+
+Thetax	dc.w	0
+Thetay	dc.w	0
+Thetaz	dc.w	0
+
+facecnt	dc.w	0
+
+cnt	dc.w	0
+
+WBlit
+	btst	#14,dmaconr(a6)		Blitter done
+	bne.s	WBlit
+	rts			If not wait
+
+
+
+*KeyDown	dc.w	$0000
+
+*WScr	dc.l	Screen0
+*DScr	dc.l	Screen1
+
+delaycnt	dc.w 0
+rotcoords	blk.w	1000
+projectcoords 	blk.w	1000
+Normals		blk.w	1000
+
+Sin	Incbin	sincostables/Sin.r
+cos	Incbin	sincostables/cos.r
+
+
+
+**********************************
+* Object data			*
+**********************************
+
+cube
+    dc.w	8	
+    dc.w    -100,100,-100    ; v0			
+    dc.w     100,100, -100    ; v100
+    dc.w     100,-100,-100    ; v2
+    dc.w    -100,-100,-100    ; v3
+    dc.w    -100,100,100    ; v4
+    dc.w     100,100,100    ; v5
+    dc.w     100,-100,100    ; v6
+    dc.w    -100,-100,100    ; v7
+
+Vectors	
+	dc.w		6
+	dc.w	4,1,0,1,2,3,0
+	dc.w	4,2,1,5,6,2,1
+	dc.w	4,3,4,7,6,5,4
+	dc.w	4,4,0,3,7,4,0
+	dc.w	4,5,2,6,7,3,2
+	dc.w	4,6,0,4,5,1,0
+
+*****************************************
+* Backface culling. Also saves normal   *
+*****************************************
+
+
+normal_Z:
+	movem.l	d1-d6,-(sp)
+
+	move.w	0(a2),d6		; coord 1
+	muls	#6,d6		; *4
+	move.w	(a3,d6.w),d0	; X1
+	move.w	2(a3,d6.w),d1	; Y1
+
+	move.w	4(a2),d6	; coord 2
+	muls	#6,d6		; *4
+	move.w	(a3,d6.w),d2	; X2
+	move.w	2(a3,d6.w),d3	; Y2
+
+	move.w	2(a2),d6	; coord 3
+	muls	#6,d6		; *4
+	move.w	(a3,d6.w),d4	; X3
+	move.w	2(a3,d6.w),d5	; Y3
+
+	sub.l	d4,d0		; (X1-X3)=Vx1
+	sub.l	d5,d1		; (Y1-Y3)=Vy1
+	sub.l	d4,d2		; (X2-X3)=Vx2
+	sub.l	d5,d3		; (Y2-Y3)=Vy2
+
+	muls.w	d3,d0		; Vx1*Vy2
+	muls.w	d2,d1		; Vy1*Vx2
+
+	sub.l	d1,d0		; (Vx1*Vx2)-(Vy1*Vy2)
+	movem.l	(sp)+,d1-d6
+	rts
+
+*****************************
+* Blitter line sdraw equates *
+*****************************
+LineMode	equ	$1
+SignFlag	equ	$40
+Octant8		equ	6
+Octant7		equ	1
+Octant6		equ	3
+Octant5		equ	7
+Octant4		equ	5
+Octant3		equ	2
+Octant2		equ	0
+Octant1		equ	4
+
+
+octant_table
+	dc.b	Octant2*4+LineMode	y1<y2, x1<x2, dx<dy
+	dc.b	Octant1*4+LineMode	y1<y2, x1<x2, dx>dy
+	dc.b	Octant3*4+LineMode	y1<y2, x1>x2, dx<dy
+	dc.b	Octant4*4+LineMode	y1<y2, x1>x2, dx>dy
+	dc.b	Octant7*4+LineMode	y1>y2, x1<x2, dx<dy
+	dc.b	Octant8*4+LineMode	y1>y2, x1<x2, dx>dy
+	dc.b	Octant6*4+LineMode	y1>y2, x1>x2, dx<dy
+	dc.b	Octant5*4+LineMode	y1>y2, x1>x2, dx>dy
+
+* written for kuma-seka ages ago, works fine and
+* can be optimized for special cases...
+* the line is (x0,y0)-(x1,y1) = (d0,d1)-(d2,d3) ...
+* Remember that you must have DFF000 in a6 and
+* The screen start address in a0.
+* Only a1-a7 and d7 is left unchanged.
+*    __   .
+*  /( |( )|\/ '(|)
+* /  )|(|\|/\   |)
+
+Screen_widht=40 ;40 bytes wide screen...
+fill_lines     ;(a6=$dff000, a0=start of bitplane to draw in)
+
+* color of facet
+
+	move.l	wscr,a0
+	lea	$dff000,a6
+	move.l	wscr,a0
+
+        cmp.w   d1,d3
+        beq.w   noline
+        ble.s   lin1
+        exg     d1,d3
+        exg     d0,d2
+lin1:   sub.w   d2,d0
+        move.w  d2,d5
+        asr.w   #3,d2
+        ext.l   d2
+        sub.w   d3,d1
+        muls    #Screen_Widht,d3        ;can be optimized here..
+        add.l   d2,d3
+        add.l   d3,a0
+        and.w   #$f,d5
+        move.w  d5,d2
+        eor.b   #$f,d5
+        ror.w   #4,d2
+        or.w    #$0b4a,d2
+        swap    d2
+        tst.w   d0
+        bmi.s   lin2
+        cmp.w   d0,d1
+        ble.s   lin3
+        move.w  #$41,d2
+        exg     d1,d0
+        bra.s   lin6
+lin3:   move.w  #$51,d2
+        bra.s   lin6
+lin2:   neg.w   d0
+        cmp.w   d0,d1
+        ble.s   lin4
+        move.w  #$49,d2
+                exg     d1,d0
+        bra.s   lin6
+lin4:   move.w  #$55,d2
+lin6:   asl.w   #1,d1
+        move.w  d1,d4
+        move.w  d1,d3
+        sub.w   d0,d3
+        ble.s   lin5
+        and.w   #$ffbf,d2
+lin5:   move.w  d3,d1
+        sub.w   d0,d3
+        or.w    #2,d2
+        lsl.w   #6,d0
+        add.w   #$42,d0
+	move.w	d7,-(sp)
+	move.w	#1-1,d7
+
+	cmp.w	#1,color
+	bne	col2
+	move.w	#1-1,d7
+	bra	linestart
+col2	
+	cmp.w	#2,color
+	bne	col3
+	add.l	#40*256,a0
+	move.w	#1-1,d7
+	bra	linestart
+col3	cmp.w	#3,color
+	bne	col4
+	move.w	#2-1,d7
+	bra	linestart
+col4	cmp.w	#4,color
+	bne	col5
+	add.l	#(40*256)*2,a0
+	move.w	#1-1,d7
+	bra	linestart
+*
+col5	cmp.w	#5,color
+	bne	col6
+	move.w	#2-1,d7
+	bra	linestart
+col6	cmp.w	#6,color
+	bne	col7
+	move.w	#2-1,d7
+	add.l	#(40*256),a0
+	bra	linestart
+col7	cmp.w	#7,color
+	bne	col8
+	move.w	#3-1,d7
+	bra	linestart
+col8	cmp.w	#8,color
+	bne	col9
+	move.w	#1-1,d7
+	add.w	#(40*256)*3,a0
+	bra	linestart
+*
+col9	cmp.w	#9,color
+	bne	col10
+	move.w	#2-1,d7
+	bra	linestart
+*
+col10	cmp.w	#10,color
+	bne	col11
+	move.w	#3-1,d7
+	bra	linestart
+*
+col11	cmp.w	#11,color
+	bne	col12
+	move.w	#3-1,d7
+	bra	linestart
+col12	cmp.w	#12,color
+	bne	col13
+	move.w	#2-1,d7
+	add.w	(40*256)*2,a0
+	move.w	#2-1,d7
+*	bra	linestart
+col13	cmp.w	#13,color
+	bne	col14
+	move.w	#3-1,d7
+	bra	linestart
+col14	cmp.w	#14,color
+	bne	col15
+	add.w	(40*256)*1,a0
+	move.w	#3-1,d7
+col15	cmp.w	#15,color
+	move.w	#4-1,d7
+	bra	linestart
+	
+	
+
+linestart
+*	move.w	#3-1,d7
+loopcols
+bltwt:  btst    #6,2(a6)
+        bne.s   bltwt
+        bchg    d5,(a0)
+        move.l  d2,$40(a6)
+        move.l  #-1,$44(a6)
+        move.l  a0,$48(a6)
+        move.w  d1,$52(a6)
+        move.l  a0,$54(a6)
+        move.w  #Screen_Widht,$60(a6)   ;width
+        move.w  d4,$62(a6)
+        move.w  d3,$64(a6)
+        move.w  #Screen_Widht,$66(a6)   ;width
+        move.l  #-$8000,$72(a6)
+        move.w  d0,$58(a6)
+
+	cmp.w	#13,color
+	beq	mul2
+	cmp.w	#11,color
+	beq	mul2
+	cmp.w	#10,color
+	beq	mul2
+	cmp.w	#9,color
+	beq	mul2
+	cmp.w	#5,color
+	beq	mul2
+	bra	noadd2
+mul2	
+	add.l	#(40*256)*2,a0
+	bra	lloop
+	
+
+noadd2	add.l	#40*256,a0
+lloop	dbra	d7,loopcols
+	move.w	(sp)+,d7
+noline: rts
+
+* Two bitplane filling routine
+
+FillPage:
+	btst	#6,$dff002
+	bne.s	Fillpage
+	move.w	#4-1,d7
+	move.l	wscr,a0
+	add.l	#40*256,a0
+	add.l	#40*255,a0
+	add.l	#40*255,a0
+	add.l	#40*255,a0
+fillloop
+	btst	#6,$dff002
+	bne.s	Fillloop
+	move.w	#$09f0,$dff040	; BLTCON0
+	move.w	#$0012,$dff042		; BLTCON1 (EFE!DESC)
+	move.l	#$ffffffff,$dff044	; BLTAFWM
+	move.l	a0,$dff050		; BLTAPT
+	move.l	a0,$dff054		; BLTDPT
+	move.l	#0,$dff064		; BLTAMOD&BLTDMOD
+	move.w	#(255*64)+20,$dff058
+	sub.l	#40*256,a0
+	dbra	d7,fillloop
+
+	rts
+
+    </pre>
+</body>
+</html>

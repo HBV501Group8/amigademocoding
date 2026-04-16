@@ -14,56 +14,71 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-        Using only projection we can't see the object from all angles and that's where
-        rotation comes in.
-      </p>
-      <p>
-        Coordinate system (right-handed)
-        Let’s assume the standard right-handed system used in most math/graphics:
+     <p>
+  Using only projection, we cannot view the object from all angles.  
+  This is where <strong>rotation</strong> becomes necessary.
+</p>
 
-        X axis → left to right
-        Y axis  → up and down
-        Z axis → out of / into the screen
-      </p>
-        
-  FORMULA FOR ROTATIONS IN THREE DIMENSION WITH THREE ANGLES
-  (x,y,z is the original (x,y,z) coordinate.
-   c1=cos(angle1), s1=sin(angle1), c2=cos(angle2) and so on...)
+<h3>Coordinate System (Right-Handed)</h3>
 
-  If you want to rotate a lot of coordinates with the same angles you
-  first calculate these values:
-      <pre>
-  
-                       xx=c2*c1
-                       xy=c2*s1
-                       xz=s2
-                       yx=c3*s1+s3*s2*c1
-                       yy=-c3*c1+s3*s2*s1
-                       yz=-s3*c2
-                       zx=s3*s1-c3*s2*c1;s2*c1+c3*s1
-                       zy=-s3*c1-c3*s2*s1;c3*c1-s2*s1
-                       zz=c3*c2
-      </pre>
-      <p>
-  Then, for each coordinate, you use the following multiplication
-  to get the rotated coordinates:
-  </p>
-  <pre>
-                       x''=xx * x + xy * y + xz * z
-                       y''=yx * x + yy * y + yz * z
-                       z''=zx * x + zy * y + zz * z
+<p>
+  We assume a standard right-handed coordinate system commonly used in graphics:
+</p>
+
+<ul>
+  <li><strong>X axis:</strong> left to right</li>
+  <li><strong>Y axis:</strong> up and down</li>
+  <li><strong>Z axis:</strong> into / out of the screen</li>
+</ul>
+
+<h3>3D Rotation Formula (Three Angles)</h3>
+
+<p>
+  Let (x, y, z) be the original coordinate.  
+  Let c1 = cos(angle1), s1 = sin(angle1), and similarly for c2, s2, c3, s3.
+</p>
+
+<p>
+  If rotating many points using the same angles, it is efficient to precompute the following constants:
+</p>
+
+<pre>
+xx = c2 * c1
+xy = c2 * s1
+xz = s2
+
+yx = c3 * s1 + s3 * s2 * c1
+yy = -c3 * c1 + s3 * s2 * s1
+yz = -s3 * c2
+
+zx = s3 * s1 - c3 * s2 * c1
+zy = -s3 * c1 - c3 * s2 * s1
+zz = c3 * c2
 </pre>
-    <p>
-  So, you only have to calculate the constants once for every new angle,
-  and THEN you use nine multiplications for every point you wish to
-  rotate to get the new set of points.
-      </p>
-      <p>
-        Here is my rotation routine based on this formula
-        it takes in sin and cos tables and 3d coords for input 
-        and rotcoords for output
-      </p>
+
+<h3>Applying the Rotation</h3>
+
+<p>
+  Once these constants are computed, each point can be rotated using a simple matrix multiplication:
+</p>
+
+<pre>
+x'' = xx * x + xy * y + xz * z
+y'' = yx * x + yy * y + yz * z
+z'' = zx * x + zy * y + zz * z
+</pre>
+
+<p>
+  This approach is efficient because the trigonometric values are calculated only once per frame, 
+  while each point only requires a small number of multiplications.
+</p>
+
+<h3>Implementation Note</h3>
+
+<p>
+  The rotation routine below uses sine and cosine tables along with input 3D coordinates, 
+  producing transformed output coordinates.
+</p>
       <pre>
 ******************
 * Rotation routine. Precalculate  *

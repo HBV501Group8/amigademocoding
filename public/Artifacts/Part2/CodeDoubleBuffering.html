@@ -14,19 +14,43 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-      What is Double Buffering?
-      </p>
-      <p>
+      <h3>🔹 What is Double Buffering?</h3>
 
-      You have two bitplane buffers (let’s call them Buffer A and Buffer B). One buffer is displayed 
-      on the screen (the active buffer), while the CPU/Blitter draws into the other buffer 
-      (the back buffer).
+<p>
+  <strong>Double buffering</strong> is a technique used to eliminate flickering and prevent partially drawn frames from being displayed on screen.
+</p>
 
-      Once drawing is complete, you swap the buffers by changing the hardware bitplane pointers 
-      (e.g. BPL1PTH/L, etc.), so the newly drawn buffer becomes visible. 
-      This way, the user never sees a partially drawn frame.
+<p>
+  It works by using two bitplane buffers:
+</p>
 
+<ul>
+  <li><strong>Buffer A:</strong> The currently displayed (front) buffer</li>
+  <li><strong>Buffer B:</strong> The back buffer used for drawing</li>
+</ul>
+
+<p>
+  While one buffer is shown on the screen, the CPU or Blitter draws the next frame into the other buffer in the background.
+</p>
+
+<p>
+  Once rendering is complete, the buffers are swapped by updating the hardware bitplane pointers 
+  (for example, <code>BPL1PTH/BPL1PTL</code>, etc.).
+</p>
+
+<p>
+  This makes the newly drawn buffer visible instantly, while the previous screen becomes the new drawing target.
+</p>
+
+<h3>Using Double Buffering with the Blitter</h3>
+
+<p>
+  In this example, we use the Blitter to draw the image into the back buffer, and then switch buffers to display the finished frame on screen.
+</p>
+
+<p>
+  This ensures smooth animation without visible tearing or partial updates.
+</p>
     </p>
 </div>
     <div class="textout">

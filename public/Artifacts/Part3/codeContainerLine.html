@@ -15,54 +15,81 @@
     </div>
     <div class="textout">
       <p>
-       1. What is a Blitter?
+		<h3>1. What is a Blitter?</h3>
 
-    A blitter is a specialized hardware or software routine that quickly moves or draws pixel data (like lines, sprites, or bitmaps) from one memory area to another. In old graphics systems, it was used to accelerate drawing without CPU-intensive calculations.
-    Instead of plotting each pixel with slow CPU operations, the blitter could copy patterns, lines, or rectangles in bulk.
-    This is why “blitter line drawing” is essentially about efficiently plotting pixels along a line.
-      </p>
-      <p>
-2. How Blitter Line Drawing Works Conceptually
-</p>
-<p>
-Blitter line drawing usually follows a rasterization algorithm:
+		<p>
+		A <strong>blitter</strong> is a specialized hardware or software routine that quickly moves or draws pixel data 
+		(such as lines, sprites, or bitmaps) from one area of memory to another.
+		</p>
 
-Step 1: Define the line
+		<p>
+		In older graphics systems, the blitter was used to accelerate drawing operations without relying heavily on the CPU.  
+		Instead of plotting pixels one by one, it could copy or generate blocks of pixels efficiently.
+		</p>
 
-You have two points:
+		<p>
+		This is why <strong>blitter line drawing</strong> refers to efficiently rendering a line by directly manipulating pixel data.
+		</p>
 
-(x0, y0) → start point
-(x1, y1) → end point
+		<h3>2. How Blitter Line Drawing Works (Conceptually)</h3>
 
-Step 2: Calculate the differences
-dx = x1 - x0
-dy = y1 - y0
+		<p>
+		Blitter line drawing typically follows a rasterization approach.
+		</p>
 
-</p>
+		<h4>Step 1: Define the line</h4>
+		<p>You have two endpoints:</p>
 
-<p>
-This gives the slope and direction.
-Step 3: Use a line algorithm
-Blitter hardware/software usually uses a Bresenham’s line algorithm because it:
-</p>
-<p>
-Only uses integer math (fast)
-Determines which pixels are “closest” to the ideal line
-Works for all slopes (steep or shallow)
-Bresenham in concept:
-Start at (x0, y0)
-Move one pixel at a time along the major axis (x or y)
-Decide whether to move in the other axis based on an error term
-Draw the pixel
+		<pre>
+		(x0, y0) → start point
+		(x1, y1) → end point
+		</pre>
 
-Repeat until (x1, y1) is reached
- </p>
- <p>
-    Here is a simple line drawing routine.
-    called with d0=x,d1=y,s2=x2,d3=y2
-    d4 is screenwidth in bytes 
-    a0 is pointer to screen(Wscr)
- </p>       
+		<h4>Step 2: Calculate differences</h4>
+
+		<pre>
+		dx = x1 - x0
+		dy = y1 - y0
+		</pre>
+
+		<p>
+		These values describe the direction and slope of the line.
+		</p>
+
+		<h4>Step 3: Use a line algorithm</h4>
+
+		<p>
+		Most blitter implementations use a variant of the <strong>Bresenham line algorithm</strong>, because it is efficient and hardware-friendly:
+		</p>
+
+		<ul>
+		<li>Uses only integer arithmetic (fast)</li>
+		<li>Determines which pixels are closest to the ideal line</li>
+		<li>Works for all line slopes (steep or shallow)</li>
+		</ul>
+
+		<p><strong>Conceptual Bresenham process:</strong></p>
+
+		<ul>
+		<li>Start at (x0, y0)</li>
+		<li>Step pixel by pixel along the major axis (x or y)</li>
+		<li>Use an error term to decide when to step in the secondary axis</li>
+		<li>Plot each pixel</li>
+		<li>Repeat until reaching (x1, y1)</li>
+		</ul>
+
+		<h4>3. Example Routine Context</h4>
+
+		<p>
+		A simple line drawing routine might be called with:
+		</p>
+
+		<pre>
+		d0 = x, d1 = y
+		s2 = x2, d3 = y2
+		d4 = screen width (in bytes)
+		a0 = pointer to screen (Wscr)
+</pre>
  <pre>
     *****************************
 * Blitter line draw equates *

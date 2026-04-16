@@ -28,9 +28,17 @@ lmb:
     </code></pre>
   </div>
   <div style="padding:10px;max-width: 50%;">
-    “If we look up the BTST command, we see it checks whether a certain bit is set. In this case,
-     bit 6, which is for the left mouse button in register $BFE001. If we inspect that register,
-      it has the following layout.”
+  <p>
+  If we look at the <strong>BTST</strong> instruction, we see that it is used to test whether a specific bit is set in a register.
+</p>
+
+<p>
+  In this case, we are checking bit 6, which corresponds to the left mouse button in the <code>$BFE001</code> hardware register.
+</p>
+
+<p>
+  When we inspect this register, we find the following bit layout:
+</p>
   </div>        
     <h1>Amiga CIA-A Register</h1>
     <h2>$BFE001 – Serial Data Register (SDR)</h2>
@@ -75,27 +83,65 @@ lmb:
     </code></pre>
   </div>
   <div style="max-width: 40%;padding: 30px;">
-     If we look up the LEA command, it fetches the address of the source and stores it in the destination.
-So we store the register $BFE001 in A0 (address registers can range from A0–A7).
-Now A0 contains the address of register $BFE001.
+<p>
+  The <strong>LEA</strong> instruction loads the address of a source operand into an address register.
+</p>
 
-The MOVE command, as its name implies, moves data from source to destination.
-The size of the MOVE instruction can be MOVE.B for moving a byte, MOVE.W for 16 bits, and finally MOVE.L for moving 32 bits.
+<p>
+  In this case, we load the hardware register <code>$BFE001</code> into <code>A0</code>.
+  Address registers range from <code>A0</code> to <code>A7</code>, and are used for pointer-based memory access.
+</p>
 
-Moving A0 in parentheses like (A0) means accessing the data at the address stored in A0.
-D0 is one of the data registers (ranging from D0–D7).
-So the D0 register now contains the first byte from the address in A0.
+<p>
+  After this operation, <code>A0</code> contains the address of <code>$BFE001</code>.
+</p>
 
-The TST instruction simply checks if D0 has data or not (whether a key has been pressed or not).
+<h3>MOVE Instruction</h3>
 
-BEQ stands for Branch if Equal (it branches when the result is zero).
-   </div>        
+<p>
+  The <strong>MOVE</strong> instruction transfers data from a source to a destination.
+  Its size can vary depending on the operation:
+</p>
+
+<ul>
+  <li><code>MOVE.B</code> — moves 8 bits (1 byte)</li>
+  <li><code>MOVE.W</code> — moves 16 bits (1 word)</li>
+  <li><code>MOVE.L</code> — moves 32 bits (1 longword)</li>
+</ul>
+
+<p>
+  When using parentheses, such as <code>(A0)</code>, we are accessing the data stored at the memory address held in <code>A0</code>.
+</p>
+
+<p>
+  Data registers (<code>D0–D7</code>) are used for general-purpose values.
+  After reading from <code>(A0)</code>, the value is stored in <code>D0</code>.
+</p>
+
+<h3>Test and Branch Instructions</h3>
+
+<p>
+  The <strong>TST</strong> instruction checks whether a value is zero or not.
+  In this context, it is used to determine whether input data (such as a key press) is present.
+</p>
+
+<p>
+  <strong>BEQ</strong> (Branch if Equal) causes a jump when the result of a previous operation is zero.
+</p>   </div>        
 
 <div style="max-width: 40%;padding: 30px;">
-      In every demo, there is a main loop that runs each frame, containing routines that 
-      are pending execution. A simpler, but less effective approach is polling the status of the 
-      vertical beam. This is not the best solution, as we will see later.
-   </div>        
+ <p>
+  In every demo, there is a main loop that runs once per frame and executes all pending routines.
+</p>
+
+<p>
+  A simpler—but less accurate—approach is to poll the vertical beam position directly.
+  However, this is not an ideal solution, as we will see later.
+</p>
+
+<p>
+  Relying on beam polling can lead to timing inconsistencies compared to using proper vertical blank synchronization.
+</p>  </div>        
  </div>
     <pre><code id="code-block"> 
 VPOSR = $dff006;
@@ -116,22 +162,32 @@ waitkey
     </code></pre>
   </div>
 <div class="textout">
-    cmp instruction compares source to destination and then take action.Usually Branching
-    here bne means not Equal so it wait for the V-beam.
+  <p>
+    The <strong>CMP</strong> instruction compares a source value with a destination value and updates the condition flags based on the result.  
+    This is often followed by a branch instruction.
+  </p>
+
+  <p>
+    For example, <strong>BNE</strong> (Branch if Not Equal) will loop until the comparison condition is no longer met, 
+    commonly used here to wait for the vertical beam position.
+  </p>
 </div>
+
 <div class="textout">
-    <p>As every demo coder knows, we will have to switch from the operating system 
-      and take control of the machine. First, we will disable the interrupts 
-      that the operating system is using and register our own interrupt.
-    </p>
-    <p>
-        So we need to begin by disabling all interrupts. The register that handles this is INTENA, 
-        or $DFF09A. If bit 15 is 0, interrupts are disabled; if it is 1, interrupts are enabled. 
-        Therefore, moving #$7FFF into INTENA disables all interrupts, just like moving #$8FFF into 
-        INTENA enables all interrupts.
-    </p>
-</div>
-    <div>
+  <p>
+    As every demo coder knows, we must take control of the machine by switching away from the operating system.
+    This involves disabling system interrupts and installing our own interrupt handlers.
+  </p>
+
+  <p>
+    The register responsible for this is <strong>INTENA</strong> at address <code>$DFF09A</code>.
+    Bit 15 controls the global interrupt state: if it is 0, interrupts are disabled; if it is 1, interrupts are enabled.
+  </p>
+
+  <p>
+    Therefore, writing <code>#$7FFF</code> to <code>INTENA</code> disables all interrupts, while writing <code>#$8FFF</code> enables them.
+  </p>
+</div>    <div>
     <pre><code id="code-block"> 
          move.w $dff01c,d5      ;read the status of interrupts in d5
          move.w #$7fff,INTENA   ; Clear all system interrupts
@@ -147,23 +203,41 @@ lmb:
 
 </div>
     <div class="textout">
-        So now we are handling interrupts, but we also need to control the display. 
-        This is where the Copper comes into play. The Copper has two main commands: 
-        MOVE and WAIT operations, which are defined using dc.w.
+      <p>
+  Now that we are handling interrupts, we also need to control the display.
+  This is where the <strong>Copper</strong> comes into play.
+</p>
 
-        For example, here is a very simple Copper list that sets the background color.
+<p>
+  The Copper uses two main operations: <strong>MOVE</strong> and <strong>WAIT</strong>,
+  which are defined as pairs of words using <code>dc.w</code>.
+</p>
 
-        Coppelist:
-            dc.w $201c,$fffe     ;Simple example of a wait operation always end with
-                                 ;$fffe and wait for vertical beam pos $201c      
-            dc.w $fff,$0180      ;This is a move command that set background colors
-                                 ; to white
-            dc.w $ffff,$fffe     ; Always this line to end the copperlist
+<h3>Example Copper List</h3>
 
-            So how do we set this copper list and disable the operating system’s copper list?
-            We first have to fetch the old copper list via ExecBase ($4). You don’t need to understand this yet.
-        </div>
-    <div>
+<p>
+  Below is a simple Copper list that sets the background color:
+</p>
+
+<pre>
+Coppelist:
+
+    dc.w $201c, $fffe    ; WAIT: wait for vertical beam position $201c
+                         ; (Copper WAIT instructions always end with $fffe)
+
+    dc.w $0fff, $0180    ; MOVE: set background color to white
+
+    dc.w $ffff, $fffe    ; end of Copper list
+</pre>
+
+<p>
+  So how do we set this Copper list and disable the operating system’s Copper list?
+</p>
+
+<p>
+  First, we need to retrieve the current system Copper list via <strong>ExecBase ($4)</strong>.
+  You do not need to fully understand this yet.
+</p>
     <pre><code id="code-block"> 
          move.l  $4,a1    
          move.l	156(a5),a1		;Get gfx-library base
@@ -195,15 +269,25 @@ Coppelist:
   </div>
   <div class="textout">
     <p>
-    Now there is one more thing to cover, and that is DMA (Direct Memory Access).
-     The register DMACON ($DFF096) controls which hardware components have direct 
-     memory access enabled.
+   <p>
+  Now there is one more important topic to cover: <strong>DMA (Direct Memory Access)</strong>.
+</p>
 
-    So we must do the same thing as with INTENA and COP1LCH ($DFF080): save the 
-    system’s current configuration and set up our own DMA settings.
+<p>
+  The <strong>DMACON</strong> register (<code>$DFF096</code>) controls which hardware components are allowed to access memory directly.
+</p>
 
-    There is also a special read register, DMACONR ($DFF002), 
-    which we can use to save the current DMA state directly.    </p>
+<p>
+  As with <code>INTENA</code> and <code>COP1LCH</code>, we must first save the system’s current configuration before setting up our own DMA settings.
+</p>
+
+<p>
+  This ensures we can restore the original state later if needed.
+</p>
+
+<p>
+  There is also a read-only register, <strong>DMACONR</strong> (<code>$DFF002</code>), which allows us to read and save the current DMA state directly.
+</p></p>
 <h1>Amiga DMA Control Register</h1>
 <h2>$DFF096 / $DFF09A – DMACON</h2>
 
@@ -289,12 +373,13 @@ Coppelist:
 
 </div>
   <p>
-    Now it’s time to get into bitmap graphics. To do this, we must set some registers.
-    It is usually best to set them in our Copper list.
-  </p>  
-  <p>
-    First there is the BPLCON0 register 
-  </p>
+  Now it’s time to move into bitmap graphics. To do this, we need to configure several hardware registers.
+  In most cases, it is best to set these through the Copper list.
+</p>
+
+<p>
+  The first important register is <strong>BPLCON0</strong>.
+</p>
   <h1>Amiga Bitplane Control Register 0</h1>
 <h2>$DFF100 – BPLCON0</h2>
 
@@ -339,56 +424,109 @@ Coppelist:
 </div>
 <div class="textout">
 <p>
-     So in a simple setup we will specify how many Bitplanes we wan't to use
-     for color setup where 1 bitplane would be 2 colors, 2 bitplanes = 4 color's,
-     3 bitplanes 16 colors, 4 bitplanes 16  colors and 5 bitplanes 32 colors
-     We must also specify colors for those color's
+  In a simple setup, we define how many bitplanes we want to use for the color depth.
 </p>
+
 <p>
-    Color are defined in registers $dff180 to number of bitplanes in power of 2
-    There are also contants for those color registers ranging from color00 to COLOR31
-    usually enough.
+  The number of bitplanes determines the number of available colors:
 </p>
+
+<ul>
+  <li>1 bitplane = 2 colors</li>
+  <li>2 bitplanes = 4 colors</li>
+  <li>3 bitplanes = 8 colors</li>
+  <li>4 bitplanes = 16 colors</li>
+  <li>5 bitplanes = 32 colors</li>
+</ul>
+
 <p>
-    So how can we set number of bitplanes? It is in the <strong> registers</strong>
-    Here is a handy equation to work put BPLCON0 by the following formula
-    <p>
-        <strong>  ScreenDepth*$1000+$200,bplcon0 </strong>
-
-        or usually in the copperlist
-
-        <strong> bplcon0,ScreenDepth*$1000+$200 </strong>
-        where screendepth is number of bitplanes used
-    </p>
-    <p>
-    There are a few more relevant registers that we also have to set.
-        These are used to define the number of bitplanes, preferably within the Copper list.
-
-        We need bitplane pointers (high and low words) in order to access the 24-bit address
-        space that the Amiga provides.
-
-        These are the BPL pointers:
-
-        BPL1PTH / BPL1PTL for one bitplane (2 colors)
-        BPL2PTH / BPL2PTL for two bitplanes (4 colors)
-        BPL3PTH / BPL3PTL for three bitplanes (8 colors)
-        BPL4PTH / BPL4PTL for four bitplanes (16 colors)
-        BPL5PTH / BPL5PTL for five bitplanes (32 colors)
-    </strong>
-	</p>
-    <p>
-        We also have to set values for window size and screen memory width.
-        The default values are:
-
-        DIWSTOP $2981, DIWSTRT $2AC1, DDFSTRT $0038, DDFSTOP $00D0
-
-        The values $0038 and $00D0 are for the default 40-byte wide screen, or 320 pixels.    </p>
-    <p>
-        There are also 2 imnportant registers. Those are <strong> and BPL2MOD </strong>
-        that are offset or modulo default 0 but when we need overscan we will need those 
-        but here is a sample copperlist for 32 color picture 
-    </p>
+  We must also define the actual color values for these bitplanes.
 </p>
+
+<p>
+  Colors are stored in registers from <code>$DFF180</code> upward, depending on the number of bitplanes.
+  These correspond to <code>COLOR00</code> through <code>COLOR31</code>.
+</p>
+
+<h3>Setting the Number of Bitplanes</h3>
+
+<p>
+  The number of bitplanes is controlled by the <strong>BPLCON0</strong> register.
+</p>
+
+<p>
+  A commonly used formula is:
+</p>
+
+<pre>
+ScreenDepth * $1000 + $0200 → BPLCON0
+</pre>
+
+<p>
+  In Copper list format, this is typically written as:
+</p>
+
+<pre>
+BPLCON0, ScreenDepth * $1000 + $0200
+</pre>
+
+<p>
+  where <em>ScreenDepth</em> is the number of bitplanes used.
+</p>
+
+<h3>Bitplane Pointers</h3>
+
+<p>
+  We also need to define bitplane pointer registers in order to access the Amiga’s 24-bit memory space.
+</p>
+
+<p>
+  These pointers are split into high and low words:
+</p>
+
+<ul>
+  <li>BPL1PTH / BPL1PTL — bitplane 1</li>
+  <li>BPL2PTH / BPL2PTL — bitplane 2</li>
+  <li>BPL3PTH / BPL3PTL — bitplane 3</li>
+  <li>BPL4PTH / BPL4PTL — bitplane 4</li>
+  <li>BPL5PTH / BPL5PTL — bitplane 5</li>
+</ul>
+
+<p>
+  These define where each bitplane is located in memory.
+</p>
+
+<h3>Display Window and DMA Settings</h3>
+
+<p>
+  We must also configure display window size and screen memory width. Typical default values are:
+</p>
+
+<pre>
+DIWSTRT  = $2AC1
+DIWSTOP  = $2981
+DDFSTRT  = $0038
+DDFSTOP  = $00D0
+</pre>
+
+<p>
+  The values <code>$0038</code> and <code>$00D0</code> define a standard 40-byte wide screen (320 pixels).
+</p>
+
+<h3>Modulo Registers</h3>
+
+<p>
+  Two additional important registers are <strong>BPL1MOD</strong> and <strong>BPL2MOD</strong>.
+</p>
+
+<p>
+  These define the modulo (offset) between bitplane rows. In most basic setups, they are set to 0.
+  However, they become necessary when using overscan or non-standard screen widths.
+</p>
+
+<p>
+  Below is a sample Copper list for a 32-color (5 bitplane) display setup:
+</p></p>
 </div>
   <div>
     <pre><code id="code-block"> 
@@ -483,22 +621,47 @@ BPLPointers
         </code></pre>
   </div>
   <div class="textout">
-      <p>
-    Now we have the Copper list, but how do we set those BPL pointers for the picture?
-    That is simple. Now I introduce a special loop command called DBF or DBRA.
+    <p>
+  Now that we have the Copper list, how do we set the bitplane pointers for the picture?
+  This is where we introduce a useful loop instruction: <strong>DBF / DBRA</strong>.
+</p>
 
-        If the counter reaches -1, the loop terminates. DBF stands for Decrement and Branch if False.      </p>
-      <p>
-        A fullscreen picture takes 320 / 8 = 40 bytes per line.
-        A picture at full height is 256 pixels.
-        So the screen memory is: 256 × 40 bytes = 10,240 bytes.
-        Then we have to multiply by the screen depth, which is 5.    <strong>
-        Final outcome is 51200 bytes for picture
-        </strong>  
-      </p>
-      <p>
-        Now it's time to set the bitplane pointers to those in picture
-      </p>
+<p>
+  The <strong>DBF (Decrement and Branch if False)</strong> instruction decrements a counter and continues looping until it reaches -1.
+  At that point, the loop terminates.
+</p>
+
+<h3>Screen Memory Calculation</h3>
+
+<p>
+  A full-screen image has a width of 320 pixels, which equals 40 bytes per line (320 / 8).
+</p>
+
+<p>
+  With a height of 256 pixels, the total memory for one bitplane is:
+</p>
+
+<pre>
+256 × 40 = 10,240 bytes per bitplane
+</pre>
+
+<p>
+  For a 5-bitplane (32-color) display, we multiply by the number of bitplanes:
+</p>
+
+<pre>
+10,240 × 5 = 51,200 bytes total
+</pre>
+
+<p>
+  This gives the final memory size required for the full picture.
+</p>
+
+<h3>Setting Bitplane Pointers</h3>
+
+<p>
+  Now it is time to assign the bitplane pointers to the image data in memory.
+</p>
   </div>
   <div>
     <pre><code id="code-block"> 
@@ -523,32 +686,53 @@ NextPlane
  
   <div class="textout">
     <p>
-      What SWAP does is swap between register halves.
+<p>
+  The <strong>SWAP</strong> instruction swaps the upper and lower halves of a register.
+</p>
 
-      Now we have connected the Copper list BPL pointers to screen memory (the picture).
-      But we will also have to set the colors in the Copper list.    </p>
-    <p>
-      There is one important thing to explain: there are two layouts for bitmaps—sequential and interleaved.
+<p>
+  At this point, we have connected the Copper list bitplane pointers to the screen memory (the picture).
+  However, we still need to define the colors in the Copper list.
+</p>
 
-      In sequential bitmaps, each bitplane is stored one after another.
-      In interleaved bitmaps, the data is stored line by line across all bitplanes.
+<h3>Bitmap Memory Layouts</h3>
 
-      Here is an example of a 3-bitplane interleaved layout: 
-    <pre>
-        Line 0 Bitplane 0
-        Line 0 Bitplane 1
-        Line 0 Bitplane 2
-        Line 1 Bitplane 0
-        Line 1 Bitplane 1
-        Line 1 Bitplane 2
-        </pre>
+<p>
+  There are two common ways to store bitmaps: <strong>sequential</strong> and <strong>interleaved</strong>.
+</p>
+
+<p>
+  In a <strong>sequential bitmap</strong>, each bitplane is stored one after another in memory.
+</p>
+
+<p>
+  In an <strong>interleaved bitmap</strong>, the data is stored line by line, with all bitplanes grouped per scanline.
+</p>
+
+<p>
+  Example of a 3-bitplane interleaved layout:
+</p>
+
+<pre>
+Line 0 Bitplane 0
+Line 0 Bitplane 1
+Line 0 Bitplane 2
+
+Line 1 Bitplane 0
+Line 1 Bitplane 1
+Line 1 Bitplane 2
+</pre>
     </p>
   </div>
   <p>
 
-    Now it's time to put it all Together and display picture
-    (The source is ready on the source ADF to run)
-  </p>
+<p>
+  Now it is time to put everything together and display the picture on screen.
+</p>
+
+<p>
+  (The full source is included on the ADF disk and can be run directly.)
+</p>  </p>
 <div>
     <pre><code id="code-block"> 
 

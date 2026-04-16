@@ -24,55 +24,75 @@
     }
   </script>
   <p>
-      How can we fill a 3D cube with different colors on each face? 
-      The Blitter chip has this capability by enabling fill mode. 
-      However, to use the Blitter for filling, we must use a specific line-drawing 
-      routine that sets the fill carry bit correctly. This routine is designed to work 
-      with the Blitter's fill mode, allowing us to fill the interior 
-      of the cube's faces after drawing the edges. 
-  </p>
-<h3>
-    How can we set the Blitter to fill mode?
-    Well, let’s remember the role of the Blitter.
-</h3>
-<p>
-    A blitter is a hardware circuit that quickly moves (or “blits”) blocks of data 
-    (usually pixels or bitplanes) from one part of memory to another, 
-    often applying logical or arithmetic operations (e.g., AND, OR, XOR).
+  How can we fill a 3D cube with different colors on each face?  
+  The Blitter chip makes this possible by enabling <strong>fill mode</strong>.
+  However, to use the Blitter for filling, we must rely on a specific 
+  line-drawing routine that correctly sets the <em>fill carry</em> bit.  
+  This ensures the fill operation works properly after drawing the cube’s edges.
+</p>
 
-    In the Amiga’s case (the most famous blitter), it can perform:
+<h3>What Does the Blitter Do?</h3>
+<p>
+  A <strong>blitter</strong> is a hardware circuit designed to quickly move 
+  (“blit”) blocks of data—typically pixels or bitplanes—between memory locations.  
+  It can also apply logical operations such as AND, OR, and XOR during the transfer.
+</p>
 
-    Line drawing (Bresenham-like)
-    Area filling
-    Fast image copying or masking
-    Logical combinations of three source channels (A, B, and C) and one destination (D)>
-  
-</p>
 <p>
-    The Amiga blitter didn’t directly draw arbitrary polygons — instead, it provided fill mode that you could use after you’ve drawn the polygon’s outline (edges).
-    The idea was:
-    Draw the edges of the polygon (using the blitter’s line draw mode).
-    Then, use the blitter fill mode to automatically fill the inside pixels between edges.
+  In the Amiga system, the blitter is especially powerful and supports:
 </p>
+<ul>
+  <li>Line drawing (similar to the Bresenham algorithm)</li>
+  <li>Area filling</li>
+  <li>Fast image copying and masking</li>
+  <li>Logical operations using three source channels (A, B, C) and one destination (D)</li>
+</ul>
+
 <p>
-    The fill logic uses a concept called "fill carry" — a bit that flips every time the blitter encounters an edge pixel while scanning a line horizontally.
-    Think of it like this:
-    The blitter scans across a line of pixels.
-    When it sees an edge pixel (set bit), it toggles its fill state.
-    If “fill carry” is on, pixels get filled until the next edge toggles it off.
-    This produces the standard “even–odd” fill rule (enter polygon → fill → exit → stop).
+  While the blitter cannot directly draw arbitrary polygons, it provides a 
+  <strong>fill mode</strong> that works after the polygon’s outline has been drawn.
 </p>
-<h3>
-    To Enable Fill Mode
-</h3>
+
+<h3>How Filling Works</h3>
 <p>
-    You set bit 0 of BLTCON1 (BLTCON1_F_LINE) and bit 4 of BLTCON1 (BLTCON1_F_FILL) depending on hardware revision.
-    Typical configuration (Amiga 500–1200 style):
-    Set BLTCON1 bit 4 (FILL MODE) to 1
-    → this activates the fill logic.
-    The fill logic state (fill carry) is in bit 2 of BLTCON1:
-    0 → clear fill carry (start unfilled)
-    1 → set fill carry (start filled)
+  The general process is:
+</p>
+<ul>
+  <li>Draw the edges of the polygon using the blitter’s line mode</li>
+  <li>Enable fill mode to automatically fill the interior pixels</li>
+</ul>
+
+<p>
+  The fill operation relies on a mechanism called <strong>fill carry</strong>.  
+  As the blitter scans horizontally across each line:
+</p>
+<ul>
+  <li>Encountering an edge pixel toggles the fill state</li>
+  <li>When fill carry is active, pixels are filled</li>
+  <li>The next edge toggles filling off</li>
+</ul>
+
+<p>
+  This follows the classic <em>even–odd rule</em>: enter the polygon → fill → exit → stop.
+</p>
+
+<h3>Enabling Fill Mode</h3>
+<p>
+  To activate fill mode, specific bits in the <code>BLTCON1</code> register must be set:
+</p>
+<ul>
+  <li><strong>Bit 4 (FILL MODE):</strong> Set to 1 to enable filling</li>
+  <li><strong>Bit 2 (Fill Carry):</strong>
+    <ul>
+      <li>0 → start unfilled</li>
+      <li>1 → start filled</li>
+    </ul>
+  </li>
+</ul>
+
+<p>
+  Depending on the hardware revision, additional control bits (such as line mode flags) 
+  may also need to be configured.
 </p>
 <img src="Images/fill.PNG" alt="">
 

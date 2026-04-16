@@ -20,30 +20,61 @@
 		This is the one I use.
 	  </p>
 	  <p>
-		The Amiga's custom font is stored in a specific format in memory. 
-		Each character is represented as a series of bytes that define its pixel pattern. 
-		To display text, you need to read the appropriate bytes for each character
-		 from the font data and then use the Blitter to copy those patterns onto the screen at the 
-		 desired location.
-     </p>
+<h3>How Can We Print Text to the Screen?</h3>
+
+<p>
+  Since we have shut down the operating system, we can no longer rely on system fonts or built-in text routines.  
+  Instead, we must use a custom font stored in memory.
+</p>
+
+<p>
+  In this example, we use a custom Amiga font format.
+</p>
+
+<p>
+  The Amiga font is stored as raw bitmap data. Each character is represented by a series of bytes that define its pixel pattern.
+</p>
+
+<p>
+  To display text, we read the corresponding character data from the font and copy it to the screen at the desired position.
+  This is typically done using the <strong>Blitter</strong>, which efficiently transfers the pixel data into the framebuffer.
+</p>     </p>
      <p>
         <img src="../../Images/font.PNG" alt="">
      </p>
     </div>
     <div class="textout">
-      <p>
-    	So basically, we have to map text from our code to letters in this font. What we need to do is get the ASCII value of a character and determine its position (row and column) in our custom font.
-		We can see that ‘A’ is the first letter in the font, and the ASCII value of ‘A’ in code is $41. So by subtracting that value, we get the first letter in the font as base position 0.
-		In this way, we can calculate each character in code and map it to the corresponding character in the custom font.
-     </p>
-     <p>
-		How about a sine scroller? In this case, we use the BLTAFWM mask register for Blitter channel A.
-		For example, if our custom font is 16×16 pixels, and we want a smooth sine scroller with 1-pixel resolution, 
-		we need to shift the mask in the loop one row at a time.
-		So how does the loop look like?
-        Well here it is
-         </p>
-         <pre>
+    <p>
+  To render text, we need to map characters from our code to the corresponding glyphs in our custom font.
+</p>
+
+<p>
+  The process starts by reading the ASCII value of each character and converting it into an index that matches our font layout.
+</p>
+
+<p>
+  For example, the character <strong>'A'</strong> has an ASCII value of <code>$41</code>.  
+  If our font also starts at 'A', we can subtract <code>$41</code> from the ASCII value to get a base index of 0.
+</p>
+
+<p>
+  This allows us to directly map each character in code to its corresponding position in the custom font data.
+</p>
+
+<h3>Sine Scroller Example</h3>
+
+<p>
+  A more advanced example is a sine scroller. In this case, we use the <strong>BLTAFWM</strong> mask register for Blitter channel A.
+</p>
+
+<p>
+  If the font is 16×16 pixels and we want a smooth sine-based scroll with 1-pixel resolution, we shift the mask one row at a time inside the rendering loop.
+</p>
+
+<p>
+  The loop structure for this effect looks like this:
+</p>
+		<pre>
  
 	move.w	#19,d1			; D1=Number of worrds to blit-1
 	move.l	mask,d2		; D2=Mask value
@@ -95,16 +126,24 @@ WBlitl	btst	#14,dmaconr(a6)		Blitter done
 	add.w	#2,d5			; Get to next word
 	dbra	d1,GetSine1		; Blit next word
          </pre>
-         <p>
-          As you can see there is 2 loops. One for each character in font and the other one 
-          the row of each character in this case 16. the logic function AB-D is used
-          that means Blitter channel A AND B = D is neccesary to preserve
-          each row.
-         </p>
-         <p>
-          Here is a an example of fully working sinsecroller that has many features.
-         </p>
-         <pre>
+    <p>
+  As you can see, there are two loops involved in this process.  
+  One loop iterates over each character in the font, and the second loop processes each row of the character (in this case, 16 rows per glyph).
+</p>
+
+<p>
+  The logic function <strong>AB-D</strong> is used, meaning:
+  <br>
+  <code>Channel A AND Channel B → Destination (D)</code>
+</p>
+
+<p>
+  This operation is necessary to correctly preserve and combine each row of the character during the blitting process.
+</p>
+
+<p>
+  Below is an example of a fully working sine scroller that includes multiple features:
+</p>     <pre>
 ******************************************
 * Scroller and Sinus scroller by Sigurjon
 * 6.9.2075

@@ -14,18 +14,15 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-        To enable the VBL interrupt, we have to use the memory vector $6C, 
-		which contains the address of the VBLANK interrupt routine that 
-		runs during each vertical blanking period.
+<p>
+  To enable the VBL interrupt, we use the memory vector <code>$6C</code>,  
+  which contains the address of the VBLANK interrupt routine that runs during each vertical blanking period.
+</p>
 
-		So here is a shell that takes care of everything and is nicely structured. It does the same as the previous examples but is better organized.
-    </div>
-    <div class="textout">
-     <p>
-So here is a shell that takes care of everything and is nicely structured.
-It does the same as the previous examples, but looks better.    </p>
-     <p>
-         <pre>
+<p>
+  Below is a structured shell that handles the full setup.  
+  It performs the same tasks as the previous examples, but in a cleaner and better-organized way.
+</p>         <pre>
 
 *************************************
 * Here are all the hardware equates *

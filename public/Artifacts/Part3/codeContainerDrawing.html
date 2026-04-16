@@ -15,33 +15,34 @@
     </div>
     <div class="textout">
       <p>
-       How can we draw a 3D cube?
-	   This is where projection of 3D coordinates comes into play. 
-	   In order to draw a wireframe cube, we can see that 8 vertices are needed,
-	   along with a table that defines how each vertex is connected.
-
-		Let’s say we have 8 3D coordinates (X, Y, and Z for each) around the center of the screen. 
-		We could have something like:
-      </p>
-        <pre>
-
-cube
-    dc.w	8	   ; nr of vertices
-    dc.w    -100,100,-100    ; v0			
-    dc.w     100,100, -100    ; v100
-    dc.w     100,-100,-100    ; v2
-    dc.w    -100,-100,-100    ; v3
-    dc.w    -100,100,100    ; v4
-    dc.w     100,100,100    ; v5
-    dc.w     100,-100,100    ; v6
-    dc.w    -100,-100,100    ; v7
-
-        </pre>
-<p>
-    As we remember, we have to convert those 3D vertices into 
-	2D screen vertices by dividing X and Y by Z, and then adding the screen center.
+  How do we draw a 3D cube?  
+  This is where <strong>projection of 3D coordinates</strong> comes into play.  
+  To render a wireframe cube, we need 8 vertices, along with a table that defines how those vertices are connected.
 </p>
 
+<p>
+  Let’s define 8 3D coordinates (X, Y, Z) positioned around the center of the scene:
+</p>
+
+<pre>
+cube
+    dc.w    8                ; number of vertices
+
+    dc.w   -100, 100, -100   ; v0
+    dc.w    100, 100, -100   ; v1
+    dc.w    100,-100, -100   ; v2
+    dc.w   -100,-100, -100   ; v3
+
+    dc.w   -100, 100,  100   ; v4
+    dc.w    100, 100,  100   ; v5
+    dc.w    100,-100,  100   ; v6
+    dc.w   -100,-100,  100   ; v7
+</pre>
+
+<p>
+  To render this cube on a 2D screen, we must convert the 3D vertices into 2D screen coordinates.  
+  This is done by dividing the X and Y values by Z (perspective projection), and then translating them to the screen center.
+</p>
     <pre>
 ***********************
 * Do projection	      *

@@ -27,7 +27,7 @@ export default function header(cookie, userEmail) {
 
     <header>
       <img src="./Images/AmigaLogo.PNG" alt="Amiga Logo" class="logo" />
-      <h4>Logged in as ${userEmail}</h4>
+      <h4>Logged in as ${userEmail} <span style="margin-left: 10px;"><a href="/logout">Logout</a></span></h4>
 
       <h1>Welcome to the Amiga demo coding for beginners</h1>
       <div class="nav">

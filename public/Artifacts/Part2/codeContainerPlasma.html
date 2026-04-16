@@ -14,21 +14,32 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-    	Copper plasma is created by reserving space in the Copper list for 40 MOVE 
-		instructions per vertical line, giving a resolution of 8 pixels. This is done 
-		for the desired vertical height of the plasma effect..
-      </p>
-      <p>
-			When the space has been filled, each frame the Blitter uses a copy function to blit the 
-			full vertical height, but only one word at a time vertically.
-			This is done across the full width of the plasma until the limit is reached.
-			The color table is the source, and the Copper list 
-			(one word at a time, or 16 pixels) is the destination.      </p>
-      <p>
-        Here is an example of Copper plasma
-      </p>
+     <p>
+  Copper plasma is created by reserving space in the Copper list for 40 <code>MOVE</code> instructions per vertical line, 
+  giving a vertical resolution of 8 pixels for the plasma effect.
+</p>
 
+<p>
+  This layout defines the area in which the plasma will be rendered across the desired screen height.
+</p>
+
+<p>
+  Once the Copper list has been prepared, each frame uses the Blitter to copy and update the data.
+  A copy operation is performed vertically, one word at a time, across the full height of the effect.
+</p>
+
+<p>
+  This process continues across the full width of the plasma until the entire screen area is updated.
+</p>
+
+<p>
+  In this setup, the color table acts as the source, while the Copper list serves as the destination
+  (updated one word at a time, corresponding to 16 pixels).
+</p>
+
+<p>
+  Below is an example of Copper plasma:
+</p>
         <pre>
 ************************************            
 ' Here are all the hardware equates *

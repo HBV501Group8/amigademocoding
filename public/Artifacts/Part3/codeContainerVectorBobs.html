@@ -14,34 +14,50 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-         In this example, we will create a simple demo of vector balls (bobs) bouncing around the screen.
-      </p>
-          What are Vectorballs?
-          You define a set of 3D points (for example, forming a shape like a cube, logo, or sphere). 
-          Each point is rendered as a filled circle (ball) on screen.
-          Instead of drawing lines (like wireframe), you draw solid discs,
-          giving a more organic and smooth look.
-    </p>
     <p>
-        3D coordinates
-        Each ball has (x, y, z)
-        Transformations
-        Rotate / move points in 3D
-        Projection
-        Convert to 2D:
-        screenX = x / z
-        screenY = y / z
-        Size & shading
-        Ball size depends on Z (closer = bigger)
-        Color/brightness also often depends on Z
-    </p>
-
-<p>
-    Here is a sorting roytine for the vector balls. We sort them by their Z value (depth) so
-     that we can draw them in the correct order (back to front) for proper occlusion.
+  In this example, we will create a simple demo of <strong>vector balls (bobs)</strong> bouncing around the screen.
 </p>
 
+<h3>What Are Vector Balls?</h3>
+
+<p>
+  Vector balls are 3D points rendered as filled circles on the screen.  
+  Instead of drawing wireframe lines, each point is displayed as a solid disc, 
+  creating a smoother and more organic visual effect.
+</p>
+
+<p>
+  These points can represent any 3D structure, such as a cube, logo, or sphere.
+</p>
+
+<h3>Core Concept</h3>
+
+<ul>
+  <li><strong>3D coordinates:</strong> Each ball is defined by (x, y, z)</li>
+  <li><strong>Transformation:</strong> Points are rotated and moved in 3D space</li>
+  <li><strong>Projection:</strong> Convert 3D points into 2D screen coordinates</li>
+</ul>
+
+<pre>
+screenX = x / z
+screenY = y / z
+</pre>
+
+<ul>
+  <li><strong>Size & shading:</strong> Ball size depends on Z (closer = larger)</li>
+  <li>Brightness or color can also depend on depth</li>
+</ul>
+
+<h3>Depth Sorting</h3>
+
+<p>
+  To render vector balls correctly, we sort them by their Z value (depth).  
+  This ensures proper back-to-front rendering and correct occlusion.
+</p>
+
+<p>
+  Below is a sorting routine used for the vector balls:
+</p>
 <pre>
     
 

@@ -7,40 +7,53 @@
   <link rel="stylesheet" href="../../static/codeContainer.css">  </style>
 </head>
 <body>
-  <h1>Example Rotating 3d Cube.</h1>
-  <div class="example-container">
-    <div class="example-header">
-      <span>assembly.asm</span>
-      <button class="copy-btn" onclick="copyCode()">Copy</button>
-    </div>
-    <div class="textout">
-      <p>
-        How can we change from a wireframe cube to a solid cube?
-		We need to check if a face (plane) is not visible and avoid drawing it, 
-		since it makes no sense to render a plane that is not visible.
-      </p>
-      <p>
-      	How can we achieve this? This is where the dot product comes in.
-     </p>
-     <p>
-		In 3D graphics, backface culling is a process used to avoid drawing 
-		the faces of 3D objects that are facing away from the camera.
+  <h1>Example: Rotating 3D Cube</h1>
 
-		Every polygon (usually a triangle) has a surface normal vector — 
-		the direction the face is pointing.
+<div class="example-container">
+  <div class="example-header">
+    <span>assembly.asm</span>
+    <button class="copy-btn" onclick="copyCode()">Copy</button>
+  </div>
 
-		If a face is pointing away from the camera, we don’t need to 
-		render it because it is invisible from the current view.
-		That is what backface culling does: it skips faces that face away.	
-	</p>
-     </p>
-     <h3>The Math regarding dot product</h3>
-
-     <img src="./Images/dotproduct.PNG" alt="">
-     <p>
-        So we need to find the Z component of a plane’s normal to determine if it is visible.
-		A plane consists of at least 3 points, but that is enough to calculate the normal.
+  <div class="textout">
+    <p>
+      How can we transform a wireframe cube into a solid one?  
+      We need to determine which faces are not visible and avoid drawing them, 
+      since rendering hidden faces is unnecessary.
     </p>
+
+    <p>
+      How do we achieve this? This is where the <strong>dot product</strong> becomes essential.
+    </p>
+
+    <p>
+      In 3D graphics, <strong>backface culling</strong> is the process of skipping faces of a 3D object 
+      that are facing away from the camera.
+    </p>
+
+    <p>
+      Every polygon (usually a triangle) has a <em>surface normal vector</em>, which indicates 
+      the direction the face is pointing.
+    </p>
+
+    <p>
+      If a face points away from the camera, it is not visible from the current viewpoint, 
+      so it does not need to be rendered. Backface culling removes these faces to improve efficiency.
+    </p>
+
+    <h3>The Math Behind the Dot Product</h3>
+
+    <img src="./Images/dotproduct.PNG" alt="Dot product illustration">
+
+    <p>
+      To determine whether a face is visible, we examine the orientation of its normal vector—particularly its Z component in view space.
+    </p>
+
+    <p>
+      A single polygon is defined by at least three points, which is sufficient to compute its surface normal.
+    </p>
+  </div>
+</div>
     <pre>
 *************************************************
 * Backface culling.                             * 

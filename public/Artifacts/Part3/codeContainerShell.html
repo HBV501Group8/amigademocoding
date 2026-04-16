@@ -14,26 +14,31 @@
       <button class="copy-btn" onclick="copyCode()">Copy</button>
     </div>
     <div class="textout">
-      <p>
-            When we are coding demos on the Amiga, we want to have control 
-			over when routines are executed, possibly based on time.
-    </p>
-    <p>
-        Here is simple Demo Script handler that has the following format
-    </p>
-        <pre>
+   <p>
+  When coding demos on the Amiga, it is often necessary to control when routines are executed, typically based on time.
+</p>
+<p>
+  To achieve this, we can use a simple <strong>demo script handler</strong> with the following format:
+</p>
 
+<h3>Script Format</h3>
+
+<pre>
 Script
 
-		dc.l TimeStart, TimeEnd, setup for this segment, number of routines, pointer to each routine
-		
-		example 
-		
-		dc.l 50*0, 50*10,setupdummy, 3, clearScreen, BlitBob, Stars3D
-	</pre>
+    dc.l TimeStart, TimeEnd, SetupRoutine, NumRoutines, PointerToRoutine1, PointerToRoutine2, ...
+</pre>
 
 <p>
-    Here is a complete shell with scripting
+  Example:
+</p>
+
+<pre>
+dc.l 50*0, 50*10, setupDummy, 3, clearScreen, BlitBob, Stars3D
+</pre>
+
+<p>
+  Here is a complete shell with scripting support:
 </p>
 <pre>
 *************************************

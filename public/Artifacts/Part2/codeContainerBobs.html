@@ -15,18 +15,25 @@
     </div>
     <div class="textout">
       <p>
-       Sine bobs are made by creating some kind of sine and cosine equation. 
-	   These are often complex, and the coordinates on the X and Y axes are stored in a buffer.
-	   Then there is a routine that renders so-called BOBs (Blitter Objects) using 
-	   those X and Y coordinates.
+  Sine bobs are created using sine and cosine functions to generate smooth circular or wave-like motion.
+  These equations can become quite complex, and the resulting X and Y coordinates are typically stored in a buffer.
+</p>
 
-		That is how it is done.
-         </p>
-         <p>
-        	To blit a bob, you need to calculate the X and Y coordinates into a format 
-			that the Blitter understands.
-         </p>
-		 <p> Here is an example</p>
+<p>
+  A separate routine then reads these coordinates and renders so-called <strong>BOBs (Blitter Objects)</strong> using the Blitter.
+</p>
+
+<p>
+  This is the basic principle behind the effect.
+</p>
+
+<p>
+  To blit a bob, the X and Y coordinates must be converted into a format that the Blitter can use for screen addressing and pixel placement.
+</p>
+
+<p>
+  Below is an example:
+</p>
          <pre>
 ******************************
 * Here are all the hardware equates *

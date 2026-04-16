@@ -15,28 +15,72 @@
     </div>
     <div class="textout">
       <p>
-      🔹 What is the Blitter?
+    <h3>🔹 What is the Blitter?</h3>
 
-      The Blitter (short for Block Image Transfer) is a dedicated piece of hardware inside the Amiga’s Agnus chip. Its main job is to move and manipulate blocks of memory (usually graphics data such as pixels) extremely quickly, without needing the CPU to do all the work.
-
-      Think of it as a hardware-accelerated copy-and-draw engine that operates in parallel with 
-      the Motorola 68000 CPU.
+<p>
+  The <strong>Blitter</strong> (short for <em>Block Image Transfer</em>) is a dedicated hardware component inside the Amiga’s Agnus chip.
+  Its primary job is to move and manipulate blocks of memory—usually graphics data such as pixels—extremely quickly, without placing heavy load on the CPU.
 </p>
-</div>
-    <div class="textout">
-      <p>
-      One of the simplest tasks is clearing the screen with the Blitter.
-      We need to introduce some new registers.
-    </p>
-    <p>
-      First there are the source registers. There are three of them, representing the A, B, and C channels. There is one destination register called D, which holds the output. The source registers can be combined in many ways (there are a total of 255 possibilities).
-      The source registers are BLTAPT, BLTBPT, and BLTCPT, and the destination register is BLTDPT.
-      There are also modulo registers for each source and destination register. These are BLTAMOD, BLTBMOD, BLTCMOD, and BLTDMOD. These modulo registers are used when working with a portion of screen graphics in conjunction with the size of the blit operation.
-   </p>
-   <p>
-      There are also Blitter control registers called BLTCON0 and BLTCON1.
-      BLTCON0.
-   </p>
+
+<p>
+  You can think of it as a hardware-accelerated copy-and-draw engine that operates in parallel with the Motorola 68000 CPU.
+</p>
+
+<h3>Basic Concept: Screen Clearing</h3>
+
+<p>
+  One of the simplest operations performed with the Blitter is clearing the screen.
+  To understand how this works, we first need to introduce the main Blitter registers.
+</p>
+
+<h3>Source and Destination Registers</h3>
+
+<p>
+  The Blitter uses three source channels—A, B, and C—and one destination channel D:
+</p>
+
+<ul>
+  <li><strong>BLTAPT</strong> — Source A pointer</li>
+  <li><strong>BLTBPT</strong> — Source B pointer</li>
+  <li><strong>BLTCPT</strong> — Source C pointer</li>
+  <li><strong>BLTDPT</strong> — Destination pointer (output)</li>
+</ul>
+
+<p>
+  These sources can be combined in many ways (up to 255 possible logic operations), allowing complex pixel manipulations.
+</p>
+
+<h3>Modulo Registers</h3>
+
+<p>
+  When working with partial screen regions or non-linear memory layouts, the Blitter uses modulo registers to control row stepping:
+</p>
+
+<ul>
+  <li><strong>BLTAMOD</strong> — Source A modulo</li>
+  <li><strong>BLTBMOD</strong> — Source B modulo</li>
+  <li><strong>BLTCMOD</strong> — Source C modulo</li>
+  <li><strong>BLTDMOD</strong> — Destination modulo</li>
+</ul>
+
+<p>
+  These values define how many bytes the Blitter should skip at the end of each row when moving to the next line of pixels.
+</p>
+
+<h3>Control Registers</h3>
+
+<p>
+  The Blitter is controlled using two main registers:
+</p>
+
+<ul>
+  <li><strong>BLTCON0</strong> — Defines the logical operation and source configuration</li>
+  <li><strong>BLTCON1</strong> — Controls additional modes such as line drawing and fill behavior</li>
+</ul>
+
+<p>
+  Together, these registers determine how the Blitter processes and combines pixel data during a blit operation.
+</p>  >
    <h1>Amiga BLTCON0 Register Cheat Sheet</h1>
 <p>The <strong>BLTCON0</strong> register (at <code>$DFF040</code>) controls the Amiga’s blitter logic operation, source selection, and source A shifting. It is 16 bits wide.</p>
 
@@ -166,15 +210,18 @@ Y9 Y8 Y7 Y6 Y5 Y4 Y3 Y2 Y1 Y0 X7 X6 X5 X4 X3 X2 X1 X0
 <li>Always set BLTSIZE last, after pointers and BLTCON0/1 are configured, to trigger the blitter operation.</li>
 </ul>
 
-
 <footer>
-This BLTSIZE reference is for the Amiga OCS/ECS chipset. AGA supports similar addressing but can handle larger pixel widths in enhanced modes.
+  This BLTSIZE reference applies to the Amiga OCS/ECS chipset.  
+  The AGA chipset supports similar addressing but can handle larger pixel widths in enhanced display modes.
 </footer>
 
 <p>
-  Now let's do a simple clearscreen with the blitter. 
-  It would be something like this
-  To ensure the blitter is ready we must check a bit in DMACONR
+  Now we will implement a simple screen clear using the Blitter.
+</p>
+
+<p>
+  To ensure the Blitter is ready, we must first check a specific bit in the <strong>DMACONR</strong> register.  
+  This confirms that any previous Blitter operation has completed before starting a new one.
 </p>
  
  <pre>
@@ -189,15 +236,25 @@ This BLTSIZE reference is for the Amiga OCS/ECS chipset. AGA supports similar ad
  </pre> 
 <div class="textout">
   <p>
-      Another example is copying from source to destination.
-      Here we need a source register. I choose BLTAPT as the source.
+  Another common Blitter operation is copying data from a source to a destination.
+</p>
 
-      We also need to adjust the logic in BLTCON0 for a copy operation.
-      We set BLTCON0 to #$09F0. The $09 selects the A channel (and related configuration), and $F0 defines the minterm for a copy operation.  </p>
-  <p>
-    Now we are only working with single bitplane in this code
-  </p>
-  <pre>
+<p>
+  In this case, we use a source register, and we choose <strong>BLTAPT</strong> as the source pointer.
+  We also need to configure the Blitter logic in <strong>BLTCON0</strong> to perform a copy operation.
+</p>
+
+<p>
+  For this example, we set <code>BLTCON0 = #$09F0</code>.  
+</p>
+
+<p>
+  The <code>$09</code> selects the A channel configuration, while <code>$F0</code> defines the minterm used for a simple copy operation.
+</p>
+
+<p>
+  In this case, we are working with a single bitplane, which simplifies the memory layout and blitting logic.
+</p><pre>
  WtB  :	BTST    #14,DMACONR		Wait for Blit to End 
       	BNE.S   WtB
 
