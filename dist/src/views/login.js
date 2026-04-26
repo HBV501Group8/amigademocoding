@@ -98,7 +98,7 @@ export default function Login() {
 
           <div class="input-group">
             <input
-              type="text"
+              type="password"
               name="password"
               placeholder="Password"
               required
@@ -108,7 +108,7 @@ export default function Login() {
           <button type="submit" class="btn">Login</button>
 
           <div class="footer">
-            Don’t have an account? <a href="/registration">Sign up</a>
+            Don’t have an account? <a href="/register">Sign up</a>
           </div>
         </form>
       </body>

@@ -69,8 +69,8 @@ app.post('/api/register', async (c) => {
 
      c.env.DB
     .prepare('INSERT INTO Users (Name,Email,Password) VALUES(?, ?, ?)')
-    .run.bind(name,email, password)
-    .first();
+    .run.bind(name,email, password);  
+    
 
   /**
    * ⚠️ NOTE: BUG HERE
@@ -117,33 +117,81 @@ app.get('/set3', (c) => {
   setCookie(c, 'user', '3');
   return c.redirect('/');
 });
+app.get('/debug-env', (c) => {
+  return c.json({
+    hasDB: !!c.env.DB,
+    envKeys: Object.keys(c.env),
+  });
+});
 
+app.get('/debug-db', async (c) => {
+  const result = await c.env.DB.prepare('SELECT * FROM lessons').all();
+  return c.json(result);
+});
+app.get('/debug-db2', async (c) => {
+  const tables = await c.env.DB.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table'"
+  ).all();
+
+  return c.json(tables);
+});
+
+app.get('/', async (c) => {
+  try {
+   
+    const userEmail = getCookie(c, 'email');
+    let user = getCookie(c, 'user');
+
+    if (!user) {
+      user = '1';
+    }
+
+    if (!userEmail) {
+      return c.html(Login());
+    }
+
+    
+    const lessons = await c.env.DB
+      .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
+      .bind(user)
+      .all();
+
+    console.log("Query result:", lessons);
+
+    return c.html(Main(user, userEmail, lessons.results));
+
+  } catch (err) {
+    console.error("🔥 DB ERROR:", err);
+    return c.text("Database error", 500);
+  }
+});
 /**
  * 🏠 Home page
  * Reads cookies:
  * - user
  * - email
  */
-app.get ('/', async(c) => {
-  const userEmail = getCookie(c, 'email');
-  let user = getCookie(c, 'user');
-  if(!user) {
-    user =  '1';
-   //  return c.html(Login());
-  }
-  if(userEmail=='') {
-    return c.html(Login());
-  }
-  const lessons = await c.env.DB
-  .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
-  .bind(user)
-  .all();
 
-  console.log('User from cookie:', user);
+// app.get ('/', async(c) => {
+//   const userEmail = getCookie(c, 'email');
+//   let user = getCookie(c, 'user');
+//   if(!user) {
+//     user =  '1';
+//    //  return c.html(Login());
+//   }
+//   if(!userEmail) {
+//     return c.html(Login());
+//   }
+//   const lessons = await c.env.DB
+//   .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
+//   .bind(user)
+//   .all();  
 
-return c.html(Main(user, userEmail, lessons.results));
+//   console.log('User from cookie:', user);
+
+// return c.html(Main(user, userEmail, lessons.results));
     
-});
+// });
 
 /**
  * 🔑 Login page

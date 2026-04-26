@@ -7,7 +7,7 @@ import { html } from 'hono/html';
  */
 
 export default function header(cookie, userEmail) {
-  let strpart = 'Basic of Amiga register using';
+  let strpart = 'Basic use of Amiga registers';
   if (cookie == '2') {
     strpart = 'Blitter,scrolling and plasma';
   }

@@ -55,8 +55,7 @@ app.post('/api/register', async (c) => {
     }
     c.env.DB
         .prepare('INSERT INTO Users (Name,Email,Password) VALUES(?, ?, ?)')
-        .run.bind(name, email, password)
-        .first();
+        .run.bind(name, email, password);
     /**
      * ⚠️ NOTE: BUG HERE
      * `user` is not defined, but used below.
@@ -68,6 +67,11 @@ app.post('/api/register', async (c) => {
     //   maxAge: 60 * 60 * 24
     // });
     return c.html(Login());
+});
+app.get('/logout', (c) => {
+    setCookie(c, 'user', '');
+    setCookie(c, 'email', '');
+    return c.redirect('/login');
 });
 /**
  * 🧪 Debug route: set user cookie = 1
@@ -91,27 +95,53 @@ app.get('/set3', (c) => {
     setCookie(c, 'user', '3');
     return c.redirect('/');
 });
+app.get('/', async (c) => {
+    try {
+        console.log("Handler started");
+        const userEmail = getCookie(c, 'email');
+        let user = getCookie(c, 'user');
+        if (!user) {
+            user = '1';
+        }
+        if (!userEmail) {
+            return c.html(Login());
+        }
+        console.log("Before DB query, user:", user);
+        const lessons = await c.env.DB
+            .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
+            .bind(user)
+            .all();
+        console.log("Query result:", lessons);
+        return c.html(Main(user, userEmail, lessons.results));
+    }
+    catch (err) {
+        console.error("🔥 DB ERROR:", err);
+        return c.text("Database error", 500);
+    }
+});
 /**
  * 🏠 Home page
  * Reads cookies:
  * - user
  * - email
  */
-app.get('/', async (c) => {
-    const userEmail = getCookie(c, 'email');
-    const user = getCookie(c, 'user');
-    if (userEmail == '') {
-        return c.html(Login());
-    }
-    if (!user) {
-        return c.html(Login());
-    }
-    const lessons = await c.env.DB
-        .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
-        .bind(user)
-        .all();
-    return c.html(Main(user, userEmail, lessons.results));
-});
+// app.get ('/', async(c) => {
+//   const userEmail = getCookie(c, 'email');
+//   let user = getCookie(c, 'user');
+//   if(!user) {
+//     user =  '1';
+//    //  return c.html(Login());
+//   }
+//   if(!userEmail) {
+//     return c.html(Login());
+//   }
+//   const lessons = await c.env.DB
+//   .prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY order_index ASC")
+//   .bind(user)
+//   .all();  
+//   console.log('User from cookie:', user);
+// return c.html(Main(user, userEmail, lessons.results));
+// });
 /**
  * 🔑 Login page
  */
@@ -171,6 +201,28 @@ app.get('/Artifacts/Part3/downloadsource3', async (c) => {
         headers: {
             "Content-Type": "application/octet-stream",
             "Content-Disposition": 'attachment; filename="DemoSrc.adf"'
+        }
+    });
+});
+app.get('/Artifacts/Part3/downloadsource4', async (c) => {
+    const url = new URL('/ADF/stars3d.adf', c.req.url);
+    const res = await c.env.ASSETS.fetch(new Request(url));
+    return new Response(res.body, {
+        headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Disposition": 'attachment; filename="stars3d.adf"'
+        }
+    });
+});
+app.get('/Artifacts/Part3/downloadvideo', async (c) => {
+    const url = new URL('/Video/amigademo.mp4', c.req.url);
+    const res = await c.env.ASSETS.fetch(new Request(url));
+    return new Response(res.body, {
+        status: res.status,
+        headers: {
+            ...res.headers,
+            "Content-Type": "video/mp4",
+            "Content-Disposition": 'attachment; filename="amigademo.mp4"'
         }
     });
 });

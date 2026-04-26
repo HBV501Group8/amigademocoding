@@ -6,7 +6,7 @@ CREATE TABLE code_examples (
     lesson_id INTEGER NOT NULL,
 
     title TEXT,
-
+			
     code TEXT NOT NULL,
 
     FOREIGN KEY (lesson_id) REFERENCES lessons(id)
@@ -78,6 +78,6 @@ CREATE TABLE Users (
 		Password TEXT NOT NULL
 
 	);
-INSERT INTO Users VALUES(1,'Sigurjon','   ','test123');
+INSERT INTO Users VALUES(1,'Sigurjon','sig@textor.is','test123');
 
 COMMIT;

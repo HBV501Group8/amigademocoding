@@ -21,7 +21,7 @@ export default function Main(cookie, userEmail,lessons) {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>My Page</title>
+        <titleAmiga demo coding for beginners</title>
         <link rel="stylesheet" href="./static/styles.css" />
       </head>
       <body>
